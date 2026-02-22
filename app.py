@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, redirect
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.svm import SVC
 from sklearn.pipeline import Pipeline
@@ -55,53 +55,83 @@ def home():
     return render_template("index.html")
 
 
-@app.route("/chat", methods=["POST"])
+@app.route("/chat", methods=["POST", "GET"])
 def chat():
-    data = request.get_json()
-    message = data.get("message", "")
+    """Process user message and classify intent using ML model.
 
-    if message.strip() == "":
-        return jsonify({"error": "Message is required"}), 400
+    - Redirects GET requests to the homepage to avoid browser errors.
+    - Uses silent JSON parsing to prevent BadRequest exceptions.
+    """
+    try:
+        if request.method == "GET":
+            return redirect("/")
 
-    prediction = model.predict([message])[0]
-    intent = label_encoder.inverse_transform([prediction])[0]
+        data = request.get_json(silent=True)
+        if not data:
+            return jsonify({"error": "Invalid request format"}), 400
 
-    response = knowledge_base.get(intent, "Sorry, I couldn't understand your issue.")
+        message = data.get("message", "").strip()
+        if not message:
+            return jsonify({"error": "Message is required"}), 400
 
-    ticket_id = str(uuid.uuid4())[:8]
+        prediction = model.predict([message])[0]
+        intent = label_encoder.inverse_transform([prediction])[0]
 
-    tickets[ticket_id] = {
-        "message": message,
-        "intent": intent
-    }
+        response = knowledge_base.get(intent, "Sorry, I couldn't understand your issue.")
 
-    return jsonify({
-        "ticket_id": ticket_id,
-        "intent": intent,
-        "response": response
-    })
+        ticket_id = str(uuid.uuid4())[:8]
+
+        tickets[ticket_id] = {
+            "message": message,
+            "intent": intent
+        }
+
+        return jsonify({
+            "ticket_id": ticket_id,
+            "intent": intent,
+            "response": response
+        })
+    except Exception as e:
+        return jsonify({"error": "Internal server error"}), 500
 
 
 @app.route("/feedback/<ticket_id>", methods=["POST"])
 def feedback(ticket_id):
-    data = request.get_json()
-    helpful = data.get("helpful")
+    """Record user feedback and improve model based on corrections."""
+    try:
+        if ticket_id not in tickets:
+            return jsonify({"error": "Invalid ticket ID"}), 404
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Invalid request format"}), 400
+        
+        helpful = data.get("helpful")
 
-    if ticket_id not in tickets:
-        return jsonify({"error": "Invalid ticket ID"}), 404
-
-    # If feedback is negative, retrain model
-    if helpful is False:
-        message = tickets[ticket_id]["message"]
-        correct_intent = tickets[ticket_id]["intent"]
-
-        texts.append(message)
-        labels.append(correct_intent)
-
-        encoded = label_encoder.fit_transform(labels)
-        model.fit(texts, encoded)
-
-    return jsonify({"message": "Feedback recorded. Model updated!"})
+        # If feedback is negative, retrain model with correct intent
+        if helpful is False:
+            message = tickets[ticket_id]["message"]
+            correct_intent = data.get("correct_intent")
+            
+            if not correct_intent:
+                return jsonify({"error": "Correct intent is required for negative feedback"}), 400
+            
+            # Add corrected data to training set
+            texts.append(message)
+            labels.append(correct_intent)
+            
+            # Retrain model with updated data
+            encoded = label_encoder.fit_transform(labels)
+            model.fit(texts, encoded)
+            
+            # Update ticket with correct intent
+            tickets[ticket_id]["intent"] = correct_intent
+            
+            return jsonify({"message": "Feedback recorded. Model updated!"})
+        
+        return jsonify({"message": "Feedback recorded. Thank you!"})
+    except Exception as e:
+        return jsonify({"error": "Internal server error"}), 500
 
 
 if __name__ == "__main__":
