@@ -1,49 +1,17 @@
-<!DOCTYPE html>
-<html>
-<head>
-<title>ResolveX Support</title>
-<link rel="stylesheet" href="/static/style.css">
-</head>
+<div class="result-content">
+    <div class="intent-badge">
+        <strong>Issue Category:</strong>
+        <span id="intent" class="badge"></span>
+    </div>
 
-<body>
+    <!-- Confidence Score Display -->
+    <div class="confidence-badge">
+        <strong>Confidence:</strong>
+        <span id="confidence" class="badge confidence"></span>
+    </div>
 
-<div class="container">
-
-<h1>ResolveX Customer Support</h1>
-
-<form id="chatForm">
-
-<textarea id="message" placeholder="Describe your issue..." required></textarea>
-
-<button type="submit">Submit</button>
-
-</form>
-
-<div id="result" class="hidden">
-
-<h3>AI Response</h3>
-
-<p><strong>Intent:</strong> <span id="intent"></span></p>
-
-<p><strong>Confidence:</strong> <span id="confidence"></span></p>
-
-<p id="response"></p>
-
-<div id="feedback">
-
-<p>Was this helpful?</p>
-
-<button onclick="sendFeedback(true)">👍 Yes</button>
-
-<button onclick="sendFeedback(false)">👎 No</button>
-
+    <div class="response-section">
+        <h3>Recommended Solution:</h3>
+        <p id="response" class="response-text"></p>
+    </div>
 </div>
-
-</div>
-
-</div>
-
-<script src="/static/main.js"></script>
-
-</body>
-</html>
