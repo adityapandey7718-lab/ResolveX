@@ -24,31 +24,19 @@ class Ticket(db.Model):
     message = db.Column(db.Text, nullable=False)
     intent = db.Column(db.String(50))
     response = db.Column(db.Text)
-    confidence = db.Column(db.Float)
     feedback = db.Column(db.String(20))
 
+# create database
 with app.app_context():
     db.create_all()
 
 # -----------------------------
-# Training Data
+# Basic Training Data
 # -----------------------------
 training_data = {
-    "billing": [
-        "refund not received",
-        "charged twice",
-        "payment problem"
-    ],
-    "technical": [
-        "app crashing",
-        "error 500",
-        "website not loading"
-    ],
-    "account": [
-        "forgot password",
-        "cannot login",
-        "reset password"
-    ]
+    "billing": ["refund not received", "charged twice"],
+    "technical": ["app crashing", "error 500"],
+    "account": ["forgot password", "cannot login"],
 }
 
 texts = []
@@ -103,23 +91,24 @@ def chat():
     if not message:
         return jsonify({"error": "Message is required"}), 400
 
-    # ML Prediction
-    probs = model.predict_proba([message])[0]
-    confidence = max(probs)
-
+    # Predict intent
     prediction = model.predict([message])[0]
     intent = label_encoder.inverse_transform([prediction])[0]
+
+    # Calculate confidence score
+    probs = model.predict_proba([message])[0]
+    confidence = max(probs)
 
     response = knowledge_base.get(intent, "Sorry, I couldn't understand your issue.")
 
     ticket_id = str(uuid.uuid4())[:8]
 
+    # save ticket in database
     ticket = Ticket(
         id=ticket_id,
         message=message,
         intent=intent,
-        response=response,
-        confidence=confidence
+        response=response
     )
 
     db.session.add(ticket)
@@ -153,7 +142,7 @@ def feedback(ticket_id):
     else:
         ticket.feedback = "negative"
 
-        # Retrain model
+        # retrain model
         texts.append(ticket.message)
         labels.append(ticket.intent)
 
@@ -178,7 +167,6 @@ def get_tickets():
             "message": t.message,
             "intent": t.intent,
             "response": t.response,
-            "confidence": round(t.confidence * 100, 2) if t.confidence else None,
             "feedback": t.feedback
         })
 
