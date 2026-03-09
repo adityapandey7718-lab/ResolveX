@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, render_template, redirect
+from flask_sqlalchemy import SQLAlchemy
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.svm import SVC
 from sklearn.pipeline import Pipeline
@@ -6,6 +7,28 @@ from sklearn.preprocessing import LabelEncoder
 import uuid
 
 app = Flask(__name__)
+
+
+# Database Configuration
+
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
+
+
+# Database Model
+
+class Ticket(db.Model):
+    id = db.Column(db.String(10), primary_key=True)
+    message = db.Column(db.Text, nullable=False)
+    intent = db.Column(db.String(50))
+    response = db.Column(db.Text)
+    feedback = db.Column(db.String(20))
+
+# create database
+with app.app_context():
+    db.create_all()
 
 # -----------------------------
 # Basic Training Data
@@ -43,9 +66,6 @@ knowledge_base = {
     "account": "Click on 'Forgot Password' to reset."
 }
 
-# Store tickets temporarily
-tickets = {}
-
 # -----------------------------
 # Routes
 # -----------------------------
@@ -57,81 +77,95 @@ def home():
 
 @app.route("/chat", methods=["POST", "GET"])
 def chat():
-    """Process user message and classify intent using ML model.
 
-    - Redirects GET requests to the homepage to avoid browser errors.
-    - Uses silent JSON parsing to prevent BadRequest exceptions.
-    """
-    try:
-        if request.method == "GET":
-            return redirect("/")
+    if request.method == "GET":
+        return redirect("/")
 
-        data = request.get_json(silent=True)
-        if not data:
-            return jsonify({"error": "Invalid request format"}), 400
+    data = request.get_json(silent=True)
 
-        message = data.get("message", "").strip()
-        if not message:
-            return jsonify({"error": "Message is required"}), 400
+    if not data:
+        return jsonify({"error": "Invalid request format"}), 400
 
-        prediction = model.predict([message])[0]
-        intent = label_encoder.inverse_transform([prediction])[0]
+    message = data.get("message", "").strip()
 
-        response = knowledge_base.get(intent, "Sorry, I couldn't understand your issue.")
+    if not message:
+        return jsonify({"error": "Message is required"}), 400
 
-        ticket_id = str(uuid.uuid4())[:8]
+    prediction = model.predict([message])[0]
+    intent = label_encoder.inverse_transform([prediction])[0]
 
-        tickets[ticket_id] = {
-            "message": message,
-            "intent": intent
-        }
+    response = knowledge_base.get(intent, "Sorry, I couldn't understand your issue.")
 
-        return jsonify({
-            "ticket_id": ticket_id,
-            "intent": intent,
-            "response": response
-        })
-    except Exception as e:
-        return jsonify({"error": "Internal server error"}), 500
+    ticket_id = str(uuid.uuid4())[:8]
+
+    # save ticket in database
+    ticket = Ticket(
+        id=ticket_id,
+        message=message,
+        intent=intent,
+        response=response
+    )
+
+    db.session.add(ticket)
+    db.session.commit()
+
+    return jsonify({
+        "ticket_id": ticket_id,
+        "intent": intent,
+        "response": response
+    })
 
 
 @app.route("/feedback/<ticket_id>", methods=["POST"])
 def feedback(ticket_id):
-    """Record user feedback and improve model based on corrections."""
-    try:
-        if ticket_id not in tickets:
-            return jsonify({"error": "Invalid ticket ID"}), 404
-        
-        data = request.get_json()
-        if not data:
-            return jsonify({"error": "Invalid request format"}), 400
-        
-        helpful = data.get("helpful")
 
-        # If feedback is negative, retrain model with correct intent
-        if helpful is False:
-            message = tickets[ticket_id]["message"]
-            correct_intent = data.get("correct_intent")
-            
-            if not correct_intent:
-                return jsonify({"error": "Correct intent is required for negative feedback"}), 400
-            
-            # Add corrected data to training set
-            texts.append(message)
-            labels.append(correct_intent)
-            
-            # Retrain model with updated data
-            encoded = label_encoder.fit_transform(labels)
-            model.fit(texts, encoded)
-            
-            # Update ticket with correct intent
-            tickets[ticket_id]["intent"] = correct_intent
-            
-            return jsonify({"message": "Feedback recorded. Model updated!"})
-        
-        return jsonify({"message": "Feedback recorded. Thank you!"})
-    except Exception as e:
-        return jsonify({"error": "Internal server error"}), 500
+    ticket = Ticket.query.get(ticket_id)
+
+    if not ticket:
+        return jsonify({"error": "Invalid ticket ID"}), 404
+
+    data = request.get_json()
+
+    if not data:
+        return jsonify({"error": "Invalid request format"}), 400
+
+    helpful = data.get("helpful")
+
+    if helpful:
+        ticket.feedback = "positive"
+
+    else:
+        ticket.feedback = "negative"
+
+        # retrain model
+        texts.append(ticket.message)
+        labels.append(ticket.intent)
+
+        encoded = label_encoder.fit_transform(labels)
+        model.fit(texts, encoded)
+
+    db.session.commit()
+
+    return jsonify({"message": "Feedback recorded"})
+
+
+@app.route("/tickets")
+def get_tickets():
+
+    tickets = Ticket.query.all()
+
+    result = []
+
+    for t in tickets:
+        result.append({
+            "id": t.id,
+            "message": t.message,
+            "intent": t.intent,
+            "response": t.response,
+            "feedback": t.feedback
+        })
+
+    return jsonify(result)
 
 
 if __name__ == "__main__":
