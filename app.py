@@ -8,35 +8,47 @@ import uuid
 
 app = Flask(__name__)
 
-
+# -----------------------------
 # Database Configuration
-
+# -----------------------------
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-
+# -----------------------------
 # Database Model
-
+# -----------------------------
 class Ticket(db.Model):
     id = db.Column(db.String(10), primary_key=True)
     message = db.Column(db.Text, nullable=False)
     intent = db.Column(db.String(50))
     response = db.Column(db.Text)
+    confidence = db.Column(db.Float)
     feedback = db.Column(db.String(20))
 
-# create database
 with app.app_context():
     db.create_all()
 
 # -----------------------------
-# Basic Training Data
+# Training Data
 # -----------------------------
 training_data = {
-    "billing": ["refund not received", "charged twice"],
-    "technical": ["app crashing", "error 500"],
-    "account": ["forgot password", "cannot login"],
+    "billing": [
+        "refund not received",
+        "charged twice",
+        "payment problem"
+    ],
+    "technical": [
+        "app crashing",
+        "error 500",
+        "website not loading"
+    ],
+    "account": [
+        "forgot password",
+        "cannot login",
+        "reset password"
+    ]
 }
 
 texts = []
@@ -91,6 +103,10 @@ def chat():
     if not message:
         return jsonify({"error": "Message is required"}), 400
 
+    # ML Prediction
+    probs = model.predict_proba([message])[0]
+    confidence = max(probs)
+
     prediction = model.predict([message])[0]
     intent = label_encoder.inverse_transform([prediction])[0]
 
@@ -98,12 +114,12 @@ def chat():
 
     ticket_id = str(uuid.uuid4())[:8]
 
-    # save ticket in database
     ticket = Ticket(
         id=ticket_id,
         message=message,
         intent=intent,
-        response=response
+        response=response,
+        confidence=confidence
     )
 
     db.session.add(ticket)
@@ -112,7 +128,8 @@ def chat():
     return jsonify({
         "ticket_id": ticket_id,
         "intent": intent,
-        "response": response
+        "response": response,
+        "confidence": round(confidence * 100, 2)
     })
 
 
@@ -133,11 +150,10 @@ def feedback(ticket_id):
 
     if helpful:
         ticket.feedback = "positive"
-
     else:
         ticket.feedback = "negative"
 
-        # retrain model
+        # Retrain model
         texts.append(ticket.message)
         labels.append(ticket.intent)
 
@@ -162,6 +178,7 @@ def get_tickets():
             "message": t.message,
             "intent": t.intent,
             "response": t.response,
+            "confidence": round(t.confidence * 100, 2) if t.confidence else None,
             "feedback": t.feedback
         })
 
