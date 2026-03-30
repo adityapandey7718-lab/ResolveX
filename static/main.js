@@ -52,23 +52,14 @@ chatForm.addEventListener("submit", async function(e) {
         currentTicketId = data.ticket_id;
 
         // Display results
-<<<<<<< HEAD
         document.getElementById("intent").innerText = data.intent.charAt(0).toUpperCase() + data.intent.slice(1);
         document.getElementById("response").innerText = data.response;
 
-=======
-        document.getElementById("intent").innerText =
-            data.intent.charAt(0).toUpperCase() + data.intent.slice(1);
-
-        document.getElementById("response").innerText = data.response;
-
-        // ⭐ NEW: Show confidence score
+        // Show confidence score
         if (data.confidence !== undefined) {
-            document.getElementById("confidence").innerText =
-                data.confidence + "%";
+            document.getElementById("confidence").innerText = data.confidence + "%";
         }
 
->>>>>>> 99e8e4bd49792b46bfc6e175259ad6f9a9131867
         resultDiv.classList.remove("hidden");
         resultDiv.scrollIntoView({ behavior: "smooth", block: "nearest" });
     } catch (error) {
