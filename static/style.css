@@ -317,3 +317,64 @@ body {
 .hidden {
     display: none;
 }
+/* Auth Pages */
+.auth-body {
+    background: linear-gradient(135deg, #5f7cff, #7a4dff);
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.auth-container {
+    width: 100%;
+    max-width: 400px;
+    padding: 20px;
+}
+
+.auth-card {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+.auth-card h2 {
+    margin-bottom: 10px;
+}
+
+.auth-subtitle {
+    color: #666;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+.auth-card input {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    border-radius: 8px;
+    border: 2px solid #ddd;
+    outline: none;
+}
+
+.auth-card input:focus {
+    border-color: #5f7cff;
+}
+
+.auth-card button {
+    width: 100%;
+    margin-top: 10px;
+}
+
+.auth-switch {
+    margin-top: 15px;
+    font-size: 14px;
+}
+
+.auth-switch a {
+    color: #5f7cff;
+    text-decoration: none;
+    font-weight: bold;
+}

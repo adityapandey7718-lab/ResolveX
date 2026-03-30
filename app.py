@@ -1,12 +1,17 @@
-from flask import Flask, request, jsonify, render_template, redirect
+from flask import Flask, request, jsonify, render_template, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.svm import SVC
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelEncoder
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
 
 app = Flask(__name__)
+
+# NEW: secret key
+app.config['SECRET_KEY'] = 'secret123'
 
 # -----------------------------
 # Database Configuration
@@ -16,8 +21,25 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
+# NEW: Login manager
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = "login"
+
 # -----------------------------
-# Database Model
+# NEW: User Model
+# -----------------------------
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True)
+    password = db.Column(db.String(200))
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+# -----------------------------
+# Existing Ticket Model
 # -----------------------------
 class Ticket(db.Model):
     id = db.Column(db.String(10), primary_key=True)
@@ -26,12 +48,11 @@ class Ticket(db.Model):
     response = db.Column(db.Text)
     feedback = db.Column(db.String(20))
 
-# create database
 with app.app_context():
     db.create_all()
 
 # -----------------------------
-# Basic Training Data
+# Training Data (same)
 # -----------------------------
 training_data = {
     "billing": ["refund not received", "charged twice"],
@@ -57,9 +78,6 @@ model = Pipeline([
 
 model.fit(texts, encoded_labels)
 
-# -----------------------------
-# Knowledge Base
-# -----------------------------
 knowledge_base = {
     "billing": "Please check your billing section in account settings.",
     "technical": "Try clearing cache and restarting the app.",
@@ -67,15 +85,57 @@ knowledge_base = {
 }
 
 # -----------------------------
-# Routes
+# NEW: Auth Routes
+# -----------------------------
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        data = request.form
+        user = User.query.filter_by(username=data["username"]).first()
+
+        if user and check_password_hash(user.password, data["password"]):
+            login_user(user)
+            return redirect("/")
+        return "Invalid credentials"
+
+    return render_template("login.html")
+
+
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    if request.method == "POST":
+        data = request.form
+
+        hashed_password = generate_password_hash(data["password"])
+
+        user = User(username=data["username"], password=hashed_password)
+        db.session.add(user)
+        db.session.commit()
+
+        return redirect("/login")
+
+    return render_template("signup.html")
+
+
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    return redirect("/login")
+
+# -----------------------------
+# Routes (protected)
 # -----------------------------
 
 @app.route("/")
+@login_required
 def home():
     return render_template("index.html")
 
 
 @app.route("/chat", methods=["POST", "GET"])
+@login_required
 def chat():
 
     if request.method == "GET":
@@ -91,11 +151,9 @@ def chat():
     if not message:
         return jsonify({"error": "Message is required"}), 400
 
-    # Predict intent
     prediction = model.predict([message])[0]
     intent = label_encoder.inverse_transform([prediction])[0]
 
-    # Calculate confidence score
     probs = model.predict_proba([message])[0]
     confidence = max(probs)
 
@@ -103,7 +161,6 @@ def chat():
 
     ticket_id = str(uuid.uuid4())[:8]
 
-    # save ticket in database
     ticket = Ticket(
         id=ticket_id,
         message=message,
@@ -123,6 +180,7 @@ def chat():
 
 
 @app.route("/feedback/<ticket_id>", methods=["POST"])
+@login_required
 def feedback(ticket_id):
 
     ticket = Ticket.query.get(ticket_id)
@@ -132,9 +190,6 @@ def feedback(ticket_id):
 
     data = request.get_json()
 
-    if not data:
-        return jsonify({"error": "Invalid request format"}), 400
-
     helpful = data.get("helpful")
 
     if helpful:
@@ -142,7 +197,6 @@ def feedback(ticket_id):
     else:
         ticket.feedback = "negative"
 
-        # retrain model
         texts.append(ticket.message)
         labels.append(ticket.intent)
 
@@ -155,22 +209,17 @@ def feedback(ticket_id):
 
 
 @app.route("/tickets")
+@login_required
 def get_tickets():
-
     tickets = Ticket.query.all()
 
-    result = []
-
-    for t in tickets:
-        result.append({
-            "id": t.id,
-            "message": t.message,
-            "intent": t.intent,
-            "response": t.response,
-            "feedback": t.feedback
-        })
-
-    return jsonify(result)
+    return jsonify([{
+        "id": t.id,
+        "message": t.message,
+        "intent": t.intent,
+        "response": t.response,
+        "feedback": t.feedback
+    } for t in tickets])
 
 
 if __name__ == "__main__":
