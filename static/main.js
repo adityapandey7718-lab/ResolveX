@@ -11,6 +11,14 @@ messageInput.addEventListener("input", function() {
     charCountSpan.textContent = this.value.length;
 });
 
+// Submit form on Enter (not Shift+Enter) inside textarea
+messageInput.addEventListener("keydown", function(e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        chatForm.requestSubmit();
+    }
+});
+
 // Form submission
 chatForm.addEventListener("submit", async function(e) {
     e.preventDefault();
