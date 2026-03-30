@@ -5,6 +5,27 @@ const submitBtn = document.getElementById("submitBtn");
 const resultDiv = document.getElementById("result");
 const errorAlert = document.getElementById("errorAlert");
 const charCountSpan = document.getElementById("charCount");
+const themeToggle = document.getElementById("themeToggle");
+
+// Theme
+function applyTheme(theme) {
+    if (theme === "dark") {
+        document.body.classList.add("dark");
+        themeToggle.innerText = "☀️ Light Mode";
+    } else {
+        document.body.classList.remove("dark");
+        themeToggle.innerText = "🌙 Dark Mode";
+    }
+    localStorage.setItem("resolvexTheme", theme);
+}
+
+const savedTheme = localStorage.getItem("resolvexTheme") || "light";
+applyTheme(savedTheme);
+
+themeToggle.addEventListener("click", function() {
+    const nextTheme = document.body.classList.contains("dark") ? "light" : "dark";
+    applyTheme(nextTheme);
+});
 
 // Character counter
 messageInput.addEventListener("input", function() {
