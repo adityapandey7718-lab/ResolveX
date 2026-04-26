@@ -27,7 +27,7 @@ login_manager.init_app(app)
 login_manager.login_view = "login"
 
 # -----------------------------
-# NEW: User Model
+# User Model
 # -----------------------------
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -39,7 +39,7 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 # -----------------------------
-# Existing Ticket Model
+# Ticket Model
 # -----------------------------
 class Ticket(db.Model):
     id = db.Column(db.String(10), primary_key=True)
@@ -52,7 +52,7 @@ with app.app_context():
     db.create_all()
 
 # -----------------------------
-# Training Data (same)
+# Training Data
 # -----------------------------
 training_data = {
     "billing": ["refund not received", "charged twice"],
@@ -85,7 +85,7 @@ knowledge_base = {
 }
 
 # -----------------------------
-# NEW: Auth Routes
+# Auth Routes
 # -----------------------------
 
 @app.route("/login", methods=["GET", "POST"])
@@ -107,10 +107,15 @@ def signup():
     if request.method == "POST":
         data = request.form
 
+        # 🔥 NEW: Check if user already exists
+        existing_user = User.query.filter_by(username=data["username"]).first()
+        if existing_user:
+            return "Username already exists. Try another."
+
         hashed_password = generate_password_hash(data["password"])
 
-        user = User(username=data["username"], password=hashed_password)
-        db.session.add(user)
+        new_user = User(username=data["username"], password=hashed_password)
+        db.session.add(new_user)
         db.session.commit()
 
         return redirect("/login")
@@ -125,7 +130,7 @@ def logout():
     return redirect("/login")
 
 # -----------------------------
-# Routes (protected)
+# Main Routes
 # -----------------------------
 
 @app.route("/")
@@ -220,6 +225,33 @@ def get_tickets():
         "response": t.response,
         "feedback": t.feedback
     } for t in tickets])
+
+
+# -----------------------------
+# NEW: Admin Dashboard
+# -----------------------------
+@app.route("/admin")
+@login_required
+def admin():
+    tickets = Ticket.query.all()
+
+    total = Ticket.query.count()
+    billing = Ticket.query.filter_by(intent="billing").count()
+    technical = Ticket.query.filter_by(intent="technical").count()
+    account = Ticket.query.filter_by(intent="account").count()
+    positive = Ticket.query.filter_by(feedback="positive").count()
+    negative = Ticket.query.filter_by(feedback="negative").count()
+
+    return render_template(
+        "admin.html",
+        tickets=tickets,
+        total=total,
+        billing=billing,
+        technical=technical,
+        account=account,
+        positive=positive,
+        negative=negative
+    )
 
 
 if __name__ == "__main__":

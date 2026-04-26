@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard - ResolveX</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="container">
+    <h2>Admin Dashboard 📊</h2>
+
+    <!-- Analytics -->
+    <div style="margin-bottom:20px;">
+        <p><strong>Total Tickets:</strong> {{ total }}</p>
+        <p><strong>Billing:</strong> {{ billing }}</p>
+        <p><strong>Technical:</strong> {{ technical }}</p>
+        <p><strong>Account:</strong> {{ account }}</p>
+        <p><strong>Positive Feedback:</strong> {{ positive }}</p>
+        <p><strong>Negative Feedback:</strong> {{ negative }}</p>
+    </div>
+
+    <!-- Ticket Table -->
+    <table border="1" style="width:100%; background:white;">
+        <tr>
+            <th>ID</th>
+            <th>Message</th>
+            <th>Intent</th>
+            <th>Feedback</th>
+        </tr>
+
+        {% for t in tickets %}
+        <tr>
+            <td>{{ t.id }}</td>
+            <td>{{ t.message }}</td>
+            <td>{{ t.intent }}</td>
+            <td>{{ t.feedback }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <br>
+    <a href="/" class="btn btn-secondary">Back</a>
+</div>
+
+</body>
+</html>
