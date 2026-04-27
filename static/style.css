@@ -1,41 +1,3 @@
-:root {
-    --bg: linear-gradient(135deg, #5f7cff, #7a4dff);
-    --body-bg: #e9ebff;
-    --text: #1f2937;
-    --container-bg: #f8f9fc;
-    --card-bg: #ffffff;
-    --muted: #666;
-    --border: #d1d5ff;
-    --primary: #5f7cff;
-    --primary-text: #ffffff;
-    --response-bg: #f1f3f9;
-}
-
-body.dark {
-    --bg: linear-gradient(135deg, #0c1a36, #162244);
-    --body-bg: #0b1125;
-    --text: #e3e9ff;
-    --container-bg: #14214a;
-    --card-bg: #1b2a67;
-    --muted: #b5c2ed;
-    --border: #415b95;
-    --primary: #7c93ff;
-    --primary-text: #ffffff;
-    --response-bg: #16254f;
-}
-
-body.dark .container {
-    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.42);
-}
-
-body.dark .category-card,
-body.dark .feedback-section,
-body.dark .chat-form textarea {
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-}
-
-
 /* Reset */
 * {
     margin: 0;
@@ -49,6 +11,28 @@ body {
     background: var(--bg);
     min-height: 100vh;
     color: var(--text);
+}
+
+:root {
+    --bg: linear-gradient(135deg, #5f7cff, #7a4dff);
+    --text: #1f2937;
+    --container-bg: #f8f9fc;
+    --card-bg: #ffffff;
+    --border: #d1d5ff;
+    --primary: #5f7cff;
+    --primary-text: #ffffff;
+    --response-bg: #f1f3f9;
+}
+
+body.dark {
+    --bg: linear-gradient(135deg, #0c1a36, #162244);
+    --text: #e6ebff;
+    --container-bg: #14214a;
+    --card-bg: #1b2a67;
+    --border: rgba(255,255,255,0.2);
+    --primary: #7c93ff;
+    --primary-text: #ffffff;
+    --response-bg: #16254f;
 }
 
 /* Navbar */
@@ -65,7 +49,7 @@ body {
 .navbar-content {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 14px;
 }
 
 .theme-toggle {
@@ -75,12 +59,12 @@ body {
     border: 1px solid var(--border);
     padding: 8px 14px;
     border-radius: 10px;
-    font-size: 12px;
-    transition: all 0.2s ease;
+    font-size: 13px;
+    transition: 0.2s ease;
 }
 
 .theme-toggle:hover {
-    opacity: 0.95;
+    opacity: 0.92;
 }
 
 .tagline {
@@ -99,55 +83,6 @@ body {
     box-shadow: 0 10px 30px rgba(0,0,0,0.2);
 }
 
-/* Result Card */
-.result-card {
-    margin-top: 20px;
-    border-radius: 15px;
-    overflow: hidden;
-    background: var(--card-bg);
-    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
-}
-
-/* Result Header */
-.result-header {
-    background: linear-gradient(90deg, var(--primary), #7a4dff);
-    color: var(--primary-text);
-    padding: 15px;
-}
-
-.result-content {
-    padding: 20px;
-    background: var(--card-bg);
-}
-
-.chat-form textarea {
-    border: 2px solid var(--border);
-    background: var(--card-bg);
-    color: var(--text);
-}
-
-.chat-form textarea:focus {
-    border-color: var(--primary);
-}
-
-.char-count {
-    color: var(--muted);
-}
-
-.response-text {
-    background: var(--response-bg);
-    border-left: 4px solid var(--primary);
-}
-
-.category-card {
-    background: var(--card-bg);
-    color: var(--text);
-    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-}
-
-.footer {
-    color: var(--primary-text);
-}
 /* Header */
 .header-section h1 {
     font-size: 26px;
@@ -164,7 +99,9 @@ body {
     width: 100%;
     border-radius: 10px;
     padding: 15px;
-    border: 2px solid #d1d5ff;
+    border: 2px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text);
     font-size: 14px;
     resize: none;
     outline: none;
@@ -218,7 +155,7 @@ body {
     margin-top: 20px;
     border-radius: 15px;
     overflow: hidden;
-    background: white;
+    background: var(--card-bg);
     box-shadow: 0 5px 20px rgba(0,0,0,0.1);
 }
 
@@ -283,7 +220,7 @@ body {
 
 .category-card {
     flex: 1;
-    background: white;
+    background: var(--card-bg);
     padding: 15px;
     border-radius: 10px;
     text-align: center;
@@ -316,4 +253,65 @@ body {
 /* Hidden */
 .hidden {
     display: none;
+}
+/* Auth Pages */
+.auth-body {
+    background: linear-gradient(135deg, #5f7cff, #7a4dff);
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.auth-container {
+    width: 100%;
+    max-width: 400px;
+    padding: 20px;
+}
+
+.auth-card {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+.auth-card h2 {
+    margin-bottom: 10px;
+}
+
+.auth-subtitle {
+    color: #666;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+.auth-card input {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    border-radius: 8px;
+    border: 2px solid #ddd;
+    outline: none;
+}
+
+.auth-card input:focus {
+    border-color: #5f7cff;
+}
+
+.auth-card button {
+    width: 100%;
+    margin-top: 10px;
+}
+
+.auth-switch {
+    margin-top: 15px;
+    font-size: 14px;
+}
+
+.auth-switch a {
+    color: #5f7cff;
+    text-decoration: none;
+    font-weight: bold;
 }
