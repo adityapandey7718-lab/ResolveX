@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Tickets - ResolveX</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="container">
+    <h2>My Support Tickets 🧾</h2>
+
+    <table border="1" style="width:100%; background:white;">
+        <tr>
+            <th>ID</th>
+            <th>Message</th>
+            <th>Intent</th>
+            <th>Response</th>
+            <th>Feedback</th>
+        </tr>
+
+        {% for t in tickets %}
+        <tr>
+            <td>{{ t.id }}</td>
+            <td>{{ t.message }}</td>
+            <td>{{ t.intent }}</td>
+            <td>{{ t.response }}</td>
+            <td>{{ t.feedback }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <br>
+    <a href="/" class="btn btn-secondary">Back</a>
+</div>
+
+</body>
+</html>

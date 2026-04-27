@@ -10,24 +10,19 @@ import uuid
 
 app = Flask(__name__)
 
-# NEW: secret key
 app.config['SECRET_KEY'] = 'secret123'
 
-# -----------------------------
-# Database Configuration
-# -----------------------------
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# NEW: Login manager
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
 
 # -----------------------------
-# User Model
+# Models
 # -----------------------------
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -38,9 +33,6 @@ class User(UserMixin, db.Model):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# -----------------------------
-# Ticket Model
-# -----------------------------
 class Ticket(db.Model):
     id = db.Column(db.String(10), primary_key=True)
     message = db.Column(db.Text, nullable=False)
@@ -52,7 +44,7 @@ with app.app_context():
     db.create_all()
 
 # -----------------------------
-# Training Data
+# ML Model
 # -----------------------------
 training_data = {
     "billing": ["refund not received", "charged twice"],
@@ -87,7 +79,6 @@ knowledge_base = {
 # -----------------------------
 # Auth Routes
 # -----------------------------
-
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -107,7 +98,6 @@ def signup():
     if request.method == "POST":
         data = request.form
 
-        # 🔥 NEW: Check if user already exists
         existing_user = User.query.filter_by(username=data["username"]).first()
         if existing_user:
             return "Username already exists. Try another."
@@ -132,7 +122,6 @@ def logout():
 # -----------------------------
 # Main Routes
 # -----------------------------
-
 @app.route("/")
 @login_required
 def home():
@@ -228,7 +217,7 @@ def get_tickets():
 
 
 # -----------------------------
-# NEW: Admin Dashboard
+# Admin Dashboard
 # -----------------------------
 @app.route("/admin")
 @login_required
@@ -252,6 +241,16 @@ def admin():
         positive=positive,
         negative=negative
     )
+
+
+# -----------------------------
+# NEW: My Tickets (User History)
+# -----------------------------
+@app.route("/my-tickets")
+@login_required
+def my_tickets():
+    tickets = Ticket.query.all()
+    return render_template("my_tickets.html", tickets=tickets)
 
 
 if __name__ == "__main__":
