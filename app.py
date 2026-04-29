@@ -1,162 +1,82 @@
-from flask import Flask, request, jsonify, render_template, redirect, url_for
-from flask_sqlalchemy import SQLAlchemy
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.svm import SVC
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import LabelEncoder
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
+from flask import Flask, request, jsonify, render_template, redirect, session, url_for
+from functools import wraps
 import uuid
+import os
+from dotenv import load_dotenv
+
+# Load env vars
+load_dotenv()
+
+from services.firebase_service import verify_token, save_ticket, get_user_tickets, get_all_tickets, update_ticket_feedback, get_ticket_stats
+from services.genai_service import generate_support_response
 
 app = Flask(__name__)
-
-app.config['SECRET_KEY'] = 'secret123'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-db = SQLAlchemy(app)
-
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = "login"
+# In production, set this in .env
+app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY', 'development_secret_key_123')
 
 # -----------------------------
-# Models
+# Auth Decorator
 # -----------------------------
-class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(50), unique=True)
-    password = db.Column(db.String(200))
-
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
-
-
-class Ticket(db.Model):
-    id = db.Column(db.String(10), primary_key=True)
-    message = db.Column(db.Text, nullable=False)
-    intent = db.Column(db.String(50))
-    response = db.Column(db.Text)
-    feedback = db.Column(db.String(20))
-
-    # NEW: connect ticket to user
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-
-with app.app_context():
-    db.create_all()
-
-# -----------------------------
-# ML Model
-# -----------------------------
-training_data = {
-    "billing": [
-        "refund not received",
-        "charged twice",
-        "payment failed",
-        "money deducted but not processed",
-        "wrong billing amount"
-    ],
-
-    "technical": [
-        "app crashing",
-        "error 500",
-        "website not loading",
-        "bug in app",
-        "server error issue"
-    ],
-
-    "account": [
-        "forgot password",
-        "cannot login",
-        "account locked",
-        "reset password issue",
-        "unable to access account"
-    ],
-}
-
-texts = []
-labels = []
-
-for intent, samples in training_data.items():
-    for s in samples:
-        texts.append(s)
-        labels.append(intent)
-
-label_encoder = LabelEncoder()
-encoded_labels = label_encoder.fit_transform(labels)
-
-model = Pipeline([
-    ("tfidf", TfidfVectorizer()),
-    ("svc", SVC(probability=True))
-])
-
-model.fit(texts, encoded_labels)
-
-knowledge_base = {
-    "billing": "Please check your billing section in account settings.",
-    "technical": "Try clearing cache and restarting the app.",
-    "account": "Click on 'Forgot Password' to reset."
-}
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 # -----------------------------
 # Auth Routes
 # -----------------------------
-@app.route("/login", methods=["GET", "POST"])
+@app.route("/login")
 def login():
+    if 'user_id' in session:
+        return redirect(url_for('home'))
+    
+    # Pass Firebase config to frontend for Google Sign-In
+    firebase_config = {
+        "apiKey": os.getenv("FIREBASE_API_KEY", ""),
+        "authDomain": os.getenv("FIREBASE_AUTH_DOMAIN", ""),
+        "projectId": os.getenv("FIREBASE_PROJECT_ID", ""),
+        "storageBucket": os.getenv("FIREBASE_STORAGE_BUCKET", ""),
+        "messagingSenderId": os.getenv("FIREBASE_MESSAGING_SENDER_ID", ""),
+        "appId": os.getenv("FIREBASE_APP_ID", "")
+    }
+    response = render_template("login.html", firebase_config=firebase_config)
+    # Prevent browser from caching the login page
+    return response, 200, {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '-1'
+    }
 
-    if request.method == "POST":
-
-        data = request.form
-
-        user = User.query.filter_by(username=data["username"]).first()
-
-        if user and check_password_hash(user.password, data["password"]):
-
-            login_user(user)
-
-            return redirect("/")
-
-        return "Invalid credentials"
-
-    return render_template("login.html")
-
-
-@app.route("/signup", methods=["GET", "POST"])
-def signup():
-
-    if request.method == "POST":
-
-        data = request.form
-
-        existing_user = User.query.filter_by(username=data["username"]).first()
-
-        if existing_user:
-            return "Username already exists. Try another."
-
-        hashed_password = generate_password_hash(data["password"])
-
-        new_user = User(
-            username=data["username"],
-            password=hashed_password
-        )
-
-        db.session.add(new_user)
-
-        db.session.commit()
-
-        return redirect("/login")
-
-    return render_template("signup.html")
-
+@app.route("/api/auth/verify", methods=["POST"])
+def verify_auth():
+    """Endpoint for frontend to send Firebase ID token"""
+    data = request.get_json()
+    id_token = data.get("idToken")
+    
+    if not id_token:
+        return jsonify({"error": "No token provided"}), 400
+        
+    decoded_token = verify_token(id_token)
+    if decoded_token:
+        # Set Flask session
+        session.permanent = True
+        session['user_id'] = decoded_token['uid']
+        session['email'] = decoded_token.get('email', '')
+        return jsonify({"success": True, "message": "Authenticated"})
+    else:
+        return jsonify({"error": "Invalid token"}), 401
 
 @app.route("/logout")
-@login_required
 def logout():
-
-    logout_user()
-
+    session.clear()
     return redirect("/login")
+
+@app.route("/signup")
+def signup():
+    return redirect(url_for('login'))
 
 # -----------------------------
 # Main Routes
@@ -164,117 +84,68 @@ def logout():
 @app.route("/")
 @login_required
 def home():
-
     return render_template("index.html")
 
-
-@app.route("/chat", methods=["POST", "GET"])
+@app.route("/chat", methods=["POST"])
 @login_required
 def chat():
-
-    if request.method == "GET":
-        return redirect("/")
-
     data = request.get_json(silent=True)
-
     if not data:
         return jsonify({"error": "Invalid request format"}), 400
 
     message = data.get("message", "").strip()
-
     if not message:
         return jsonify({"error": "Message is required"}), 400
 
-    if len(message) < 5:
-        return jsonify({"error": "Message too short"}), 400
-
-    prediction = model.predict([message])[0]
-
-    intent = label_encoder.inverse_transform([prediction])[0]
-
-    probs = model.predict_proba([message])[0]
-
-    confidence = max(probs)
-
-    # smarter response
-    if confidence < 0.5:
-        response = "I'm not fully confident about this issue. Please provide more details."
-    else:
-        response = knowledge_base.get(
-            intent,
-            "Sorry, I couldn't understand your issue."
-        )
-
+    # Process with GenAI
+    ai_result = generate_support_response(message)
+    
     ticket_id = str(uuid.uuid4())[:8]
+    user_id = session.get('user_id')
 
-    ticket = Ticket(
-        id=ticket_id,
-        message=message,
-        intent=intent,
-        response=response,
+    ticket_data = {
+        "id": ticket_id,
+        "user_id": user_id,
+        "message": message,
+        "intent": ai_result['intent'],
+        "response": ai_result['response'],
+        "confidence": ai_result['confidence'],
+        "status": ai_result['status'],
+        "feedback": None
+    }
 
-        # NEW: save user id
-        user_id=current_user.id
-    )
-
-    db.session.add(ticket)
-
-    db.session.commit()
+    # Save to Firestore
+    save_ticket(ticket_data)
 
     return jsonify({
         "ticket_id": ticket_id,
-        "intent": intent,
-        "response": response,
-        "confidence": round(confidence * 100, 2)
+        "intent": ai_result['intent'],
+        "response": ai_result['response'],
+        "confidence": ai_result['confidence'],
+        "status": ai_result['status']
     })
-
 
 @app.route("/feedback/<ticket_id>", methods=["POST"])
 @login_required
 def feedback(ticket_id):
-
-    ticket = Ticket.query.get(ticket_id)
-
-    if not ticket:
-        return jsonify({"error": "Invalid ticket ID"}), 404
-
     data = request.get_json()
-
     helpful = data.get("helpful")
+    feedback_value = "positive" if helpful else "negative"
 
-    if helpful:
-        ticket.feedback = "positive"
+    # Update in Firestore
+    try:
+        update_ticket_feedback(ticket_id, feedback_value)
+        return jsonify({"message": "Feedback recorded"})
+    except Exception as e:
+        print(f"Error saving feedback: {e}")
+        return jsonify({"error": "Failed to save feedback"}), 500
 
-    else:
-        ticket.feedback = "negative"
-
-        texts.append(ticket.message)
-
-        labels.append(ticket.intent)
-
-        encoded = label_encoder.fit_transform(labels)
-
-        model.fit(texts, encoded)
-
-    db.session.commit()
-
-    return jsonify({"message": "Feedback recorded"})
-
-
-@app.route("/tickets")
+@app.route("/my-tickets")
 @login_required
-def get_tickets():
-
-    tickets = Ticket.query.all()
-
-    return jsonify([{
-        "id": t.id,
-        "message": t.message,
-        "intent": t.intent,
-        "response": t.response,
-        "feedback": t.feedback
-    } for t in tickets])
-
+def my_tickets():
+    user_id = session.get('user_id')
+    tickets = get_user_tickets(user_id)
+    return render_template("my_tickets.html", tickets=tickets)
 
 # -----------------------------
 # Admin Dashboard
@@ -282,48 +153,21 @@ def get_tickets():
 @app.route("/admin")
 @login_required
 def admin():
-
-    tickets = Ticket.query.all()
-
-    total = Ticket.query.count()
-
-    billing = Ticket.query.filter_by(intent="billing").count()
-
-    technical = Ticket.query.filter_by(intent="technical").count()
-
-    account = Ticket.query.filter_by(intent="account").count()
-
-    positive = Ticket.query.filter_by(feedback="positive").count()
-
-    negative = Ticket.query.filter_by(feedback="negative").count()
+    # Fetch tickets and stats from Firestore
+    tickets = get_all_tickets()
+    stats = get_ticket_stats()
 
     return render_template(
         "admin.html",
         tickets=tickets,
-        total=total,
-        billing=billing,
-        technical=technical,
-        account=account,
-        positive=positive,
-        negative=negative
+        total=stats['total'],
+        billing=stats['billing'],
+        technical=stats['technical'],
+        account=stats['account'],
+        positive=stats['positive'],
+        negative=stats['negative'],
+        escalated=stats['escalated']
     )
-
-
-# -----------------------------
-# User Ticket History
-# -----------------------------
-@app.route("/my-tickets")
-@login_required
-def my_tickets():
-
-    # NEW: only current user's tickets
-    tickets = Ticket.query.filter_by(user_id=current_user.id).all()
-
-    return render_template(
-        "my_tickets.html",
-        tickets=tickets
-    )
-
 
 if __name__ == "__main__":
     app.run(debug=True)

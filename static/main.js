@@ -134,6 +134,18 @@ async function submitHandler(event) {
             confidenceEl.innerText = `${data.confidence}%`;
         }
 
+        const statusEl = document.getElementById('status');
+        if (statusEl && data.status) {
+            statusEl.innerText = data.status;
+            if (data.status === 'Escalated') {
+                statusEl.style.backgroundColor = '#ef4444'; // red
+                statusEl.style.color = 'white';
+            } else {
+                statusEl.style.backgroundColor = '#10b981'; // green
+                statusEl.style.color = 'white';
+            }
+        }
+
         resultDiv?.classList.remove('hidden');
         resultDiv?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } catch (error) {

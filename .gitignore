@@ -6,3 +6,4 @@ instance/
 *.db
 __pycache__/
 .env
+firebase_credentials.json

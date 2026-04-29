@@ -13,6 +13,7 @@
     <table border="1" style="width:100%; background:white;">
         <tr>
             <th>ID</th>
+            <th>Status</th>
             <th>Message</th>
             <th>Intent</th>
             <th>Response</th>
@@ -22,6 +23,7 @@
         {% for t in tickets %}
         <tr>
             <td>{{ t.id }}</td>
+            <td style="{% if t.status == 'Escalated' %}color:red; font-weight:bold;{% endif %}">{{ t.status }}</td>
             <td>{{ t.message }}</td>
             <td>{{ t.intent }}</td>
             <td>{{ t.response }}</td>
