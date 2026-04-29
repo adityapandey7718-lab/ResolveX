@@ -11,7 +11,6 @@ import uuid
 app = Flask(__name__)
 
 app.config['SECRET_KEY'] = 'secret123'
-
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -33,12 +32,16 @@ class User(UserMixin, db.Model):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+
 class Ticket(db.Model):
     id = db.Column(db.String(10), primary_key=True)
     message = db.Column(db.Text, nullable=False)
     intent = db.Column(db.String(50))
     response = db.Column(db.Text)
     feedback = db.Column(db.String(20))
+
+    # NEW: connect ticket to user
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
 with app.app_context():
     db.create_all()
@@ -47,9 +50,29 @@ with app.app_context():
 # ML Model
 # -----------------------------
 training_data = {
-    "billing": ["refund not received", "charged twice"],
-    "technical": ["app crashing", "error 500"],
-    "account": ["forgot password", "cannot login"],
+    "billing": [
+        "refund not received",
+        "charged twice",
+        "payment failed",
+        "money deducted but not processed",
+        "wrong billing amount"
+    ],
+
+    "technical": [
+        "app crashing",
+        "error 500",
+        "website not loading",
+        "bug in app",
+        "server error issue"
+    ],
+
+    "account": [
+        "forgot password",
+        "cannot login",
+        "account locked",
+        "reset password issue",
+        "unable to access account"
+    ],
 }
 
 texts = []
@@ -81,13 +104,19 @@ knowledge_base = {
 # -----------------------------
 @app.route("/login", methods=["GET", "POST"])
 def login():
+
     if request.method == "POST":
+
         data = request.form
+
         user = User.query.filter_by(username=data["username"]).first()
 
         if user and check_password_hash(user.password, data["password"]):
+
             login_user(user)
+
             return redirect("/")
+
         return "Invalid credentials"
 
     return render_template("login.html")
@@ -95,17 +124,25 @@ def login():
 
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
+
     if request.method == "POST":
+
         data = request.form
 
         existing_user = User.query.filter_by(username=data["username"]).first()
+
         if existing_user:
             return "Username already exists. Try another."
 
         hashed_password = generate_password_hash(data["password"])
 
-        new_user = User(username=data["username"], password=hashed_password)
+        new_user = User(
+            username=data["username"],
+            password=hashed_password
+        )
+
         db.session.add(new_user)
+
         db.session.commit()
 
         return redirect("/login")
@@ -116,7 +153,9 @@ def signup():
 @app.route("/logout")
 @login_required
 def logout():
+
     logout_user()
+
     return redirect("/login")
 
 # -----------------------------
@@ -125,6 +164,7 @@ def logout():
 @app.route("/")
 @login_required
 def home():
+
     return render_template("index.html")
 
 
@@ -145,13 +185,25 @@ def chat():
     if not message:
         return jsonify({"error": "Message is required"}), 400
 
+    if len(message) < 5:
+        return jsonify({"error": "Message too short"}), 400
+
     prediction = model.predict([message])[0]
+
     intent = label_encoder.inverse_transform([prediction])[0]
 
     probs = model.predict_proba([message])[0]
+
     confidence = max(probs)
 
-    response = knowledge_base.get(intent, "Sorry, I couldn't understand your issue.")
+    # smarter response
+    if confidence < 0.5:
+        response = "I'm not fully confident about this issue. Please provide more details."
+    else:
+        response = knowledge_base.get(
+            intent,
+            "Sorry, I couldn't understand your issue."
+        )
 
     ticket_id = str(uuid.uuid4())[:8]
 
@@ -159,10 +211,14 @@ def chat():
         id=ticket_id,
         message=message,
         intent=intent,
-        response=response
+        response=response,
+
+        # NEW: save user id
+        user_id=current_user.id
     )
 
     db.session.add(ticket)
+
     db.session.commit()
 
     return jsonify({
@@ -188,13 +244,16 @@ def feedback(ticket_id):
 
     if helpful:
         ticket.feedback = "positive"
+
     else:
         ticket.feedback = "negative"
 
         texts.append(ticket.message)
+
         labels.append(ticket.intent)
 
         encoded = label_encoder.fit_transform(labels)
+
         model.fit(texts, encoded)
 
     db.session.commit()
@@ -205,6 +264,7 @@ def feedback(ticket_id):
 @app.route("/tickets")
 @login_required
 def get_tickets():
+
     tickets = Ticket.query.all()
 
     return jsonify([{
@@ -222,13 +282,19 @@ def get_tickets():
 @app.route("/admin")
 @login_required
 def admin():
+
     tickets = Ticket.query.all()
 
     total = Ticket.query.count()
+
     billing = Ticket.query.filter_by(intent="billing").count()
+
     technical = Ticket.query.filter_by(intent="technical").count()
+
     account = Ticket.query.filter_by(intent="account").count()
+
     positive = Ticket.query.filter_by(feedback="positive").count()
+
     negative = Ticket.query.filter_by(feedback="negative").count()
 
     return render_template(
@@ -244,13 +310,19 @@ def admin():
 
 
 # -----------------------------
-# NEW: My Tickets (User History)
+# User Ticket History
 # -----------------------------
 @app.route("/my-tickets")
 @login_required
 def my_tickets():
-    tickets = Ticket.query.all()
-    return render_template("my_tickets.html", tickets=tickets)
+
+    # NEW: only current user's tickets
+    tickets = Ticket.query.filter_by(user_id=current_user.id).all()
+
+    return render_template(
+        "my_tickets.html",
+        tickets=tickets
+    )
 
 
 if __name__ == "__main__":
