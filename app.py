@@ -60,14 +60,15 @@ def verify_auth():
         return jsonify({"error": "No token provided"}), 400
         
     decoded_token = verify_token(id_token)
-    if decoded_token:
+    if decoded_token and "error" not in decoded_token:
         # Set Flask session
         session.permanent = True
         session['user_id'] = decoded_token['uid']
         session['email'] = decoded_token.get('email', '')
         return jsonify({"success": True, "message": "Authenticated"})
     else:
-        return jsonify({"error": "Invalid token"}), 401
+        error_msg = decoded_token.get("error", "Invalid token") if decoded_token else "Invalid token"
+        return jsonify({"error": error_msg}), 401
 
 @app.route("/logout")
 def logout():
@@ -76,7 +77,18 @@ def logout():
 
 @app.route("/signup")
 def signup():
-    return redirect(url_for('login'))
+    if 'user_id' in session:
+        return redirect(url_for('home'))
+    
+    firebase_config = {
+        "apiKey": os.getenv("FIREBASE_API_KEY", ""),
+        "authDomain": os.getenv("FIREBASE_AUTH_DOMAIN", ""),
+        "projectId": os.getenv("FIREBASE_PROJECT_ID", ""),
+        "storageBucket": os.getenv("FIREBASE_STORAGE_BUCKET", ""),
+        "messagingSenderId": os.getenv("FIREBASE_MESSAGING_SENDER_ID", ""),
+        "appId": os.getenv("FIREBASE_APP_ID", "")
+    }
+    return render_template("signup.html", firebase_config=firebase_config)
 
 # -----------------------------
 # Main Routes

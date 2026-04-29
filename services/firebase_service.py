@@ -9,7 +9,11 @@ load_dotenv()
 cred_path = os.getenv("FIREBASE_CREDENTIALS_PATH", "firebase_credentials.json")
 if not firebase_admin._apps:
     cred = credentials.Certificate(cred_path)
-    firebase_admin.initialize_app(cred)
+    # Explicitly set project ID to avoid mismatch errors
+    project_id = os.getenv("FIREBASE_PROJECT_ID")
+    firebase_admin.initialize_app(cred, {
+        'projectId': project_id
+    })
 
 db = firestore.client()
 
@@ -19,8 +23,21 @@ def verify_token(id_token):
         decoded_token = auth.verify_id_token(id_token)
         return decoded_token
     except Exception as e:
-        print(f"Error verifying token: {e}")
-        return None
+        error_msg = str(e)
+        # Handle Clock Skew: "Token used too early"
+        if "Token used too early" in error_msg:
+            import time
+            print("DEBUG: Clock skew detected. Retrying in 1 second...")
+            time.sleep(1.1)  # Wait just over 1 second
+            try:
+                return auth.verify_id_token(id_token)
+            except Exception as retry_e:
+                error_msg = str(retry_e)
+        
+        print(f"DEBUG: Firebase Token Verification Failed. Error: {error_msg}")
+        import traceback
+        traceback.print_exc()
+        return {"error": error_msg}
 
 def save_ticket(ticket_data):
     """Saves a new ticket to Firestore."""
