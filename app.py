@@ -222,6 +222,12 @@ def admin():
         escalated=stats['escalated']
     )
 
+@app.route("/api/chat/reset", methods=["POST"])
+@login_required
+def reset_chat():
+    session.pop('chat_history', None)
+    return jsonify({"success": True})
+
 @app.route("/api/admin/ticket/<ticket_id>", methods=["POST"])
 @login_required
 def admin_update_ticket(ticket_id):

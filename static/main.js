@@ -228,6 +228,17 @@ async function submitHandler(event) {
     }
 }
 
+async function resetChat() {
+    currentTicketId = null;
+    if (typeof chatHistory !== 'undefined') chatHistory.innerHTML = '';
+    await fetch('/api/chat/reset', { method: 'POST' }).catch(() => {});
+    const welcome = document.createElement('div');
+    welcome.className = 'message ai-message';
+    welcome.innerHTML = '<div class="bubble">Hello! I am ResolveX AI. How can I help you today?</div>';
+    if (typeof chatHistory !== 'undefined') chatHistory.appendChild(welcome);
+    document.querySelectorAll('.ticket-item').forEach(i => i.classList.remove('active'));
+}
+
 function initApp() {
     messageInput = document.getElementById('message');
     chatForm = document.getElementById('chatForm');

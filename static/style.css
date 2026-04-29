@@ -1,4 +1,5 @@
-/* Reset */
+/* Main CSS */
+
 * {
     margin: 0;
     padding: 0;
@@ -7,26 +8,26 @@
 }
 
 :root {
-    --bg: linear-gradient(135deg, #f6f8ff 0%, #e9eeff 100%);
+    --bg: #f8fafc;
     --text: #0f172a;
     --text-muted: #64748b;
-    --container-bg: rgba(255, 255, 255, 0.7);
+    --container-bg: #ffffff;
     --card-bg: #ffffff;
-    --border: rgba(226, 232, 240, 0.8);
-    --primary: #4f46e5;
-    --primary-hover: #4338ca;
-    --primary-glow: rgba(79, 70, 229, 0.2);
+    --border: #e2e8f0;
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --primary-glow: rgba(37, 99, 235, 0.1);
     --primary-text: #ffffff;
     --secondary-bg: #f1f5f9;
     --secondary-text: #475569;
     --response-bg: #f8fafc;
-    --user-bubble: #4f46e5;
+    --user-bubble: #2563eb;
     --user-text: #ffffff;
-    --ai-bubble: #ffffff;
+    --ai-bubble: #f1f5f9;
     --ai-text: #0f172a;
-    --glass-blur: blur(12px);
-    --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
-    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --glass-blur: none;
+    --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+    --transition: all 0.2s ease;
 }
 
 body.dark {
@@ -77,13 +78,14 @@ body {
 
 /* Navbar */
 .navbar {
-    padding: 20px 40px;
+    padding: 16px 40px;
     position: sticky;
     top: 0;
     z-index: 100;
-    backdrop-filter: var(--glass-blur);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--container-bg);
 }
 
 .navbar-content {
@@ -95,18 +97,22 @@ body {
 }
 
 .logo {
-    font-size: 22px;
+    font-size: 24px;
     font-weight: 800;
     background: linear-gradient(to right, #4f46e5, #818cf8);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     letter-spacing: -0.5px;
+    cursor: pointer;
 }
 
 .tagline {
-    font-size: 14px;
+    font-size: 12px;
     color: var(--text-muted);
-    font-weight: 500;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    opacity: 0.8;
 }
 
 .theme-toggle {
@@ -262,7 +268,7 @@ body {
     justify-content: center;
     gap: 8px;
     text-decoration: none;
-    font-size: 14px;
+    font-size: 15px;
 }
 
 .btn-primary {
@@ -290,9 +296,11 @@ body {
 
 .btn-secondary:hover {
     background: var(--border);
+    transform: translateY(-1px);
 }
 
 .btn-success { background: #10b981; color: white; }
+.btn-success:hover { background: #059669; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); }
 .btn-danger { background: #ef4444; color: white; }
 
 /* Status Badges */
@@ -532,6 +540,40 @@ body {
 
 .hidden { display: none !important; }
 
+/* Global Table Styles */
+.table-container {
+    background: var(--card-bg);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+}
+
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 18px; text-align: left; border-bottom: 1px solid var(--border); }
+th { background: var(--secondary-bg); color: var(--secondary-text); font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+tr:hover { background: rgba(0,0,0,0.02); }
+body.dark tr:hover { background: rgba(255,255,255,0.02); }
+
+.status-pill { padding: 6px 12px; border-radius: 10px; font-size: 12px; font-weight: 700; }
+.status-escalated { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); }
+.status-resolved { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); }
+
+.actions { display: flex; gap: 8px; }
+.action-btn { 
+    padding: 6px 12px; 
+    border-radius: 8px; 
+    border: none; 
+    cursor: pointer; 
+    font-size: 12px;
+    font-weight: 600;
+    transition: var(--transition);
+}
+.btn-edit { background: var(--primary); color: white; }
+.btn-edit:hover { background: var(--primary-hover); transform: translateY(-1px); }
+.btn-kb { background: #10b981; color: white; }
+.btn-kb:hover { background: #059669; transform: translateY(-1px); }
+
 /* Mobile */
 @media (max-width: 768px) {
     .container {
@@ -541,7 +583,8 @@ body {
     .categories-grid {
         grid-template-columns: 1fr;
     }
-    .navbar { padding: 15px 20px; }
+    .navbar { padding: 10px 20px; }
+    .logo { font-size: 20px; }
     .message { max-width: 90%; }
     .sidebar {
         display: none; /* In a real app, use a hamburger menu */
