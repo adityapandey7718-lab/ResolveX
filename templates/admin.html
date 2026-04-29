@@ -2,49 +2,280 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - ResolveX</title>
     <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .admin-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border: 1px solid var(--border);
+        }
+        .stat-card h3 { font-size: 14px; opacity: 0.7; margin-bottom: 10px; }
+        .stat-card p { font-size: 24px; font-weight: bold; }
+        
+        .ticket-table-container {
+            background: var(--card-bg);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border: 1px solid var(--border);
+            margin-bottom: 50px;
+        }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background: var(--response-bg); font-weight: 600; }
+        tr:hover { background: rgba(0,0,0,0.02); }
+        
+        .status-pill { padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .status-escalated { background: #fee2e2; color: #ef4444; }
+        .status-resolved { background: #dcfce7; color: #10b981; }
+        
+        .feedback-pill { font-size: 18px; }
+        
+        .actions { display: flex; gap: 8px; }
+        .action-btn { 
+            padding: 6px 12px; 
+            border-radius: 6px; 
+            border: none; 
+            cursor: pointer; 
+            font-size: 12px;
+            transition: 0.2s;
+        }
+        .btn-edit { background: #5f7cff; color: white; }
+        .btn-kb { background: #10b981; color: white; }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background: var(--card-bg);
+            margin: 10% auto;
+            padding: 30px;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            position: relative;
+            color: var(--text);
+        }
+        .modal-header { margin-bottom: 20px; }
+        .modal-footer { margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px; }
+        .close-modal { position: absolute; right: 20px; top: 20px; font-size: 24px; cursor: pointer; }
+    </style>
 </head>
-<body>
+<body class="{{ 'dark' if request.cookies.get('theme') == 'dark' else '' }}">
 
-<div class="container">
-    <h2>Admin Dashboard 📊</h2>
+<div class="navbar">
+    <div class="navbar-content">
+        <div class="logo">ResolveX Admin</div>
+        <a href="/" class="btn btn-secondary" style="margin-left: auto;">Client View</a>
+        <a href="/logout" class="btn btn-secondary">Logout</a>
+    </div>
+</div>
 
-    <!-- Analytics -->
-    <div style="margin-bottom:20px;">
-        <p><strong>Total Tickets:</strong> {{ total }}</p>
-        <p><strong>Escalated (Needs Human):</strong> <span style="color:red; font-weight:bold;">{{ escalated }}</span></p>
-        <p><strong>Billing:</strong> {{ billing }}</p>
-        <p><strong>Technical:</strong> {{ technical }}</p>
-        <p><strong>Account:</strong> {{ account }}</p>
-        <p><strong>Positive Feedback:</strong> {{ positive }}</p>
-        <p><strong>Negative Feedback:</strong> {{ negative }}</p>
+<div class="container" style="max-width: 1000px;">
+    <div class="header-section">
+        <h1>Dashboard Overview</h1>
+        <p class="subtitle">Monitor and manage AI support interactions</p>
     </div>
 
-    <!-- Ticket Table -->
-    <table border="1" style="width:100%; background:white;">
-        <tr>
-            <th>ID</th>
-            <th>Status</th>
-            <th>Message</th>
-            <th>Intent</th>
-            <th>Feedback</th>
-        </tr>
+    <div class="admin-grid">
+        <div class="stat-card">
+            <h3>Total Tickets</h3>
+            <p>{{ total }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>Escalated</h3>
+            <p style="color: #ef4444;">{{ escalated }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>Positive</h3>
+            <p style="color: #10b981;">{{ positive }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>Negative</h3>
+            <p style="color: #f59e0b;">{{ negative }}</p>
+        </div>
+    </div>
 
-        {% for t in tickets %}
-        <tr>
-            <td>{{ t.id }}</td>
-            <td style="{% if t.status == 'Escalated' %}color:red; font-weight:bold;{% endif %}">{{ t.status }}</td>
-            <td>{{ t.message }}</td>
-            <td>{{ t.intent }}</td>
-            <td>{{ t.feedback }}</td>
-        </tr>
-        {% endfor %}
-    </table>
-
-    <br>
-    <a href="/" class="btn btn-secondary">Back</a>
+    <div class="ticket-table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Ticket</th>
+                    <th>Status</th>
+                    <th>Issue</th>
+                    <th>Feedback</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in tickets %}
+                <tr>
+                    <td><small>#{{ t.id }}</small></td>
+                    <td>
+                        <span class="status-pill {% if t.status == 'Escalated' %}status-escalated{% else %}status-resolved{% endif %}">
+                            {{ t.status }}
+                        </span>
+                    </td>
+                    <td>
+                        <strong>{{ t.intent|capitalize }}</strong><br>
+                        <small>{{ t.message[:50] }}{% if t.message|length > 50 %}...{% endif %}</small>
+                    </td>
+                    <td>
+                        {% if t.feedback == 'positive' %}
+                            <span class="feedback-pill">👍</span>
+                        {% elif t.feedback == 'negative' %}
+                            <span class="feedback-pill">👎</span>
+                            {% if t.correct_answer or t.correct_category %}
+                                <br><small style="color: #ef4444;">Correction provided</small>
+                            {% endif %}
+                        {% else %}
+                            <span style="opacity: 0.3;">None</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="actions">
+                            <button class="action-btn btn-edit" onclick="openEditModal('{{ t.id }}', '{{ t.status }}', `{{ t.response|replace('`', '\\`') }}`)">Edit</button>
+                            {% if t.feedback == 'negative' and t.correct_answer %}
+                            <button class="action-btn btn-kb" onclick="openKBModal('{{ t.correct_category or t.intent }}', `{{ t.correct_answer|replace('`', '\\`') }}`)">To KB</button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
+
+<!-- Edit Ticket Modal -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeModal('editModal')">&times;</span>
+        <div class="modal-header">
+            <h3>Edit Ticket Response</h3>
+        </div>
+        <div class="form-group">
+            <label style="display: block; margin-bottom: 5px;">Status</label>
+            <select id="editStatus" style="width: 100%; padding: 10px; margin-bottom: 15px; border-radius: 8px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text);">
+                <option value="Resolved">Resolved</option>
+                <option value="Escalated">Escalated</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label style="display: block; margin-bottom: 5px;">AI Response</label>
+            <textarea id="editResponse" style="width: 100%; height: 120px; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text);"></textarea>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('editModal')">Cancel</button>
+            <button class="btn btn-primary" id="saveTicketBtn">Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<!-- Knowledge Base Modal -->
+<div id="kbModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeModal('kbModal')">&times;</span>
+        <div class="modal-header">
+            <h3>Add to Knowledge Base</h3>
+        </div>
+        <div class="form-group">
+            <label style="display: block; margin-bottom: 5px;">Intent / Category</label>
+            <input type="text" id="kbIntent" style="width: 100%; padding: 10px; margin-bottom: 15px; border-radius: 8px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text);">
+        </div>
+        <div class="form-group">
+            <label style="display: block; margin-bottom: 5px;">Response / Solution</label>
+            <textarea id="kbResponse" style="width: 100%; height: 120px; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text);"></textarea>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('kbModal')">Cancel</button>
+            <button class="btn btn-success" id="saveKBBtn">Update KB</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentEditTicketId = null;
+
+    function openEditModal(id, status, response) {
+        currentEditTicketId = id;
+        document.getElementById('editStatus').value = status;
+        document.getElementById('editResponse').value = response;
+        document.getElementById('editModal').style.display = 'block';
+    }
+
+    function openKBModal(intent, response) {
+        document.getElementById('kbIntent').value = intent;
+        document.getElementById('kbResponse').value = response;
+        document.getElementById('kbModal').style.display = 'block';
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).style.display = 'none';
+    }
+
+    document.getElementById('saveTicketBtn').addEventListener('click', async () => {
+        const status = document.getElementById('editStatus').value;
+        const response = document.getElementById('editResponse').value;
+        
+        const res = await fetch(`/api/admin/ticket/${currentEditTicketId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status, response })
+        });
+        
+        if (res.ok) {
+            location.reload();
+        } else {
+            alert('Failed to update ticket');
+        }
+    });
+
+    document.getElementById('saveKBBtn').addEventListener('click', async () => {
+        const intent = document.getElementById('kbIntent').value;
+        const response = document.getElementById('kbResponse').value;
+        
+        const res = await fetch('/api/admin/kb', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ intent, response })
+        });
+        
+        if (res.ok) {
+            alert('Knowledge Base updated successfully!');
+            closeModal('kbModal');
+        } else {
+            alert('Failed to update Knowledge Base');
+        }
+    });
+
+    window.onclick = function(event) {
+        if (event.target.className === 'modal') {
+            event.target.style.display = 'none';
+        }
+    }
+</script>
 
 </body>
 </html>

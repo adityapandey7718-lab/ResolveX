@@ -58,10 +58,16 @@ def get_all_tickets():
         tickets.append(doc.to_dict())
     return tickets
 
-def update_ticket_feedback(ticket_id, feedback):
-    """Updates the feedback on a ticket."""
+def update_ticket_feedback(ticket_id, feedback, correct_answer=None, correct_category=None):
+    """Updates the feedback on a ticket with optional user-provided corrections."""
     doc_ref = db.collection('tickets').document(ticket_id)
-    doc_ref.update({'feedback': feedback})
+    update_data = {'feedback': feedback}
+    if correct_answer:
+        update_data['correct_answer'] = correct_answer
+    if correct_category:
+        update_data['correct_category'] = correct_category
+    
+    doc_ref.update(update_data)
 
 def get_knowledge_base():
     """Retrieves all entries from the knowledge base."""

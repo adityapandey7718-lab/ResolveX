@@ -45,6 +45,11 @@ function disableFeedbackButtons(disabled) {
     if (no) no.disabled = disabled;
 }
 
+function toggleDetailedFeedback() {
+    const el = document.getElementById('detailedFeedback');
+    if (el) el.classList.toggle('hidden');
+}
+
 function resetChat() {
     if (messageInput) messageInput.value = '';
     if (charCountSpan) charCountSpan.textContent = '0';
@@ -62,11 +67,20 @@ async function sendFeedback(helpful) {
 
     disableFeedbackButtons(true);
 
+    let payload = { helpful };
+    
+    if (!helpful) {
+        const correctCategory = document.getElementById('correctCategory')?.value;
+        const correctAnswer = document.getElementById('correctAnswer')?.value;
+        payload.correct_category = correctCategory;
+        payload.correct_answer = correctAnswer;
+    }
+
     try {
         const res = await fetch(`/feedback/${currentTicketId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ helpful })
+            body: JSON.stringify(payload)
         });
 
         if (!res.ok) throw new Error(`Server error: ${res.status}`);

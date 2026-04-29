@@ -207,6 +207,56 @@ body.dark {
     margin-top: 10px;
 }
 
+.detailed-feedback {
+    margin-top: 20px;
+    padding: 15px;
+    background: var(--response-bg);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+}
+
+.detailed-feedback h4 {
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
+.detailed-feedback p {
+    font-size: 13px;
+    margin-bottom: 10px;
+    opacity: 0.8;
+}
+
+.detailed-feedback .form-group {
+    margin-bottom: 10px;
+}
+
+.detailed-feedback label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.detailed-feedback select, .detailed-feedback textarea {
+    width: 100%;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text);
+    font-size: 13px;
+}
+
+.detailed-feedback textarea {
+    height: 60px;
+    resize: vertical;
+}
+
+.btn-sm {
+    padding: 8px 16px;
+    font-size: 13px;
+}
+
 /* Info section */
 .info-section {
     margin-top: 30px;

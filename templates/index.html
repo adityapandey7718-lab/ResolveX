@@ -93,10 +93,32 @@
                         <button 
                             type="button" 
                             class="btn btn-danger" 
-                            onclick="sendFeedback(false)"
+                            onclick="toggleDetailedFeedback()"
                             id="feedbackNo"
                         >
                             👎 Not Helpful
+                        </button>
+                    </div>
+
+                    <!-- Detailed Feedback Form -->
+                    <div id="detailedFeedback" class="detailed-feedback hidden">
+                        <h4>Help us improve!</h4>
+                        <p>What should the correct answer or category be?</p>
+                        <div class="form-group">
+                            <label for="correctCategory">Correct Category:</label>
+                            <select id="correctCategory" class="form-select">
+                                <option value="billing">Billing</option>
+                                <option value="technical">Technical</option>
+                                <option value="account">Account</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="correctAnswer">Correct Answer (Optional):</label>
+                            <textarea id="correctAnswer" placeholder="Provide the correct solution..."></textarea>
+                        </div>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="sendFeedback(false)">
+                            Submit Feedback
                         </button>
                     </div>
                 </div>

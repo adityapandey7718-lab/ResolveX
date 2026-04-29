@@ -142,11 +142,13 @@ def chat():
 def feedback(ticket_id):
     data = request.get_json()
     helpful = data.get("helpful")
+    correct_answer = data.get("correct_answer")
+    correct_category = data.get("correct_category")
     feedback_value = "positive" if helpful else "negative"
 
     # Update in Firestore
     try:
-        update_ticket_feedback(ticket_id, feedback_value)
+        update_ticket_feedback(ticket_id, feedback_value, correct_answer, correct_category)
         return jsonify({"message": "Feedback recorded"})
     except Exception as e:
         print(f"Error saving feedback: {e}")
@@ -180,6 +182,43 @@ def admin():
         negative=stats['negative'],
         escalated=stats['escalated']
     )
+
+@app.route("/api/admin/ticket/<ticket_id>", methods=["POST"])
+@login_required
+def admin_update_ticket(ticket_id):
+    # In a real app, check if user is admin
+    data = request.get_json()
+    status = data.get("status")
+    response_text = data.get("response")
+    
+    try:
+        from services.firebase_service import db
+        doc_ref = db.collection('tickets').document(ticket_id)
+        update_data = {}
+        if status: update_data['status'] = status
+        if response_text: update_data['response'] = response_text
+        
+        doc_ref.update(update_data)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/admin/kb", methods=["POST"])
+@login_required
+def admin_update_kb():
+    data = request.get_json()
+    intent = data.get("intent")
+    response_text = data.get("response")
+    
+    if not intent or not response_text:
+        return jsonify({"error": "Intent and response are required"}), 400
+        
+    try:
+        from services.firebase_service import update_knowledge_base_entry
+        update_knowledge_base_entry(intent, response_text)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=True)
