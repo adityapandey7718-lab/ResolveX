@@ -1,5 +1,5 @@
 let currentTicketId = null;
-let messageInput, chatForm, submitBtn, chatHistory, errorAlert, charCountSpan, themeToggle;
+let messageInput, chatForm, submitBtn, chatHistory, errorAlert, charCountSpan, themeToggle, ticketList;
 
 function applyTheme(theme) {
     if (theme === 'dark') {
@@ -50,7 +50,7 @@ function appendMessage(content, type, data = null) {
     textSpan.innerText = content;
     msgDiv.appendChild(textSpan);
 
-    if (type === 'ai' && data) {
+    if (type === 'assistant' && data && data.confidence !== undefined) {
         const template = document.getElementById('feedbackTemplate');
         if (template) {
             const clone = template.content.cloneNode(true);
@@ -72,11 +72,11 @@ function appendMessage(content, type, data = null) {
             const categorySelect = clone.querySelector('.correct-category');
             const answerText = clone.querySelector('.correct-answer');
 
-            yesBtn.onclick = () => handleFeedback(data.ticket_id, true, msgDiv);
+            yesBtn.onclick = () => handleFeedback(currentTicketId, true, msgDiv);
             noBtn.onclick = () => detailed.classList.toggle('hidden');
             
             submitBtn.onclick = () => {
-                handleFeedback(data.ticket_id, false, msgDiv, categorySelect.value, answerText.value);
+                handleFeedback(currentTicketId, false, msgDiv, categorySelect.value, answerText.value);
             };
 
             msgDiv.appendChild(clone);
@@ -85,6 +85,66 @@ function appendMessage(content, type, data = null) {
 
     chatHistory.appendChild(msgDiv);
     chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: 'smooth' });
+}
+
+async function loadTickets() {
+    if (!ticketList) return;
+    try {
+        const res = await fetch('/my-tickets?json=true'); // We'll update the route to support JSON
+        if (!res.ok) throw new Error();
+        const tickets = await res.json();
+        
+        ticketList.innerHTML = '';
+        if (tickets.length === 0) {
+            ticketList.innerHTML = '<div style="padding:20px; text-align:center; font-size:12px; opacity:0.5;">No previous chats found.</div>';
+            return;
+        }
+
+        tickets.forEach(ticket => {
+            const item = document.createElement('div');
+            item.className = `ticket-item ${currentTicketId === ticket.id ? 'active' : ''}`;
+            const firstMsg = ticket.messages ? ticket.messages[0].content : ticket.message || 'New Chat';
+            item.innerHTML = `
+                <div class="ticket-id">#${ticket.id}</div>
+                <div class="ticket-preview">${firstMsg}</div>
+            `;
+            item.onclick = () => loadTicket(ticket.id);
+            ticketList.appendChild(item);
+        });
+    } catch (e) {
+        ticketList.innerHTML = '<div style="padding:20px; text-align:center; font-size:12px; color:red;">Failed to load history.</div>';
+    }
+}
+
+async function loadTicket(id) {
+    if (currentTicketId === id) return;
+    currentTicketId = id;
+    
+    // Highlight in sidebar
+    document.querySelectorAll('.ticket-item').forEach(i => i.classList.remove('active'));
+    document.querySelector(`.ticket-item[onclick*="${id}"]`)?.classList.add('active');
+
+    chatHistory.innerHTML = '<div style="padding:20px; text-align:center; opacity:0.5;">Loading conversation...</div>';
+
+    try {
+        const res = await fetch(`/api/ticket/${id}`);
+        if (!res.ok) throw new Error();
+        const ticket = await res.json();
+
+        chatHistory.innerHTML = '';
+        if (ticket.messages) {
+            ticket.messages.forEach(msg => {
+                appendMessage(msg.content, msg.role);
+            });
+        } else {
+            // Legacy support
+            appendMessage(ticket.message, 'user');
+            appendMessage(ticket.response, 'assistant', ticket);
+        }
+    } catch (e) {
+        showError('Failed to load conversation');
+        resetChat();
+    }
 }
 
 async function handleFeedback(ticketId, helpful, container, correctCat = null, correctAns = null) {
@@ -116,13 +176,18 @@ async function handleFeedback(ticketId, helpful, container, correctCat = null, c
 
 function resetChat() {
     if (chatHistory) {
-        chatHistory.innerHTML = `\n            <div class="message ai-message">\n                Hello! I'm ResolveX. How can I help you today? Whether it's billing, technical issues, or account management, I'm here to assist.\n            </div>\n        `;
+        chatHistory.innerHTML = `
+            <div class="message assistant-message">
+                Hello! I'm ResolveX. How can I help you today? Whether it's billing, technical issues, or account management, I'm here to assist.
+            </div>
+        `;
     }
     if (messageInput) {
         messageInput.value = '';
         messageInput.style.height = 'auto';
     }
     currentTicketId = null;
+    document.querySelectorAll('.ticket-item').forEach(i => i.classList.remove('active'));
 }
 
 async function submitHandler(event) {
@@ -130,7 +195,7 @@ async function submitHandler(event) {
     const message = messageInput?.value.trim();
     if (!message) return;
 
-    if (message.length < 5) {
+    if (message.length < 2) {
         showError('Message too short');
         return;
     }
@@ -144,16 +209,19 @@ async function submitHandler(event) {
         const res = await fetch('/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message })
+            body: JSON.stringify({ message, ticket_id: currentTicketId })
         });
 
         if (!res.ok) throw new Error('Server error');
         const data = await res.json();
         
-        appendMessage(data.response, 'ai', data);
-        currentTicketId = data.ticket_id;
+        appendMessage(data.response, 'assistant', data);
+        if (!currentTicketId) {
+            currentTicketId = data.ticket_id;
+            loadTickets(); // Refresh list to show the new chat
+        }
     } catch (e) {
-        appendMessage('Sorry, I encountered an error. Please try again.', 'ai');
+        appendMessage('Sorry, I encountered an error. Please try again.', 'assistant');
         showError('Connection error');
     } finally {
         setLoading(false);
@@ -168,6 +236,7 @@ function initApp() {
     errorAlert = document.getElementById('errorAlert');
     charCountSpan = document.getElementById('charCount');
     themeToggle = document.getElementById('themeToggle');
+    ticketList = document.getElementById('ticketList');
 
     const savedTheme = localStorage.getItem('resolvexTheme') || 'light';
     applyTheme(savedTheme);
@@ -191,6 +260,8 @@ function initApp() {
     });
 
     chatForm?.addEventListener('submit', submitHandler);
+    
+    loadTickets();
 }
 
-document.addEventListener('DOMContentLoaded', initApp);
+document.addEventListener('DOMContentLoaded', initApp);

@@ -40,10 +40,21 @@ def verify_token(id_token):
         return {"error": error_msg}
 
 def save_ticket(ticket_data):
-    """Saves a new ticket to Firestore."""
-    # ticket_data should contain: id, user_id, message, intent, response, status, confidence
+    """Saves or updates a ticket in Firestore."""
     doc_ref = db.collection('tickets').document(ticket_data['id'])
-    doc_ref.set(ticket_data)
+    doc_ref.set(ticket_data, merge=True)
+
+def get_ticket(ticket_id):
+    """Retrieves a specific ticket by ID."""
+    doc = db.collection('tickets').document(ticket_id).get()
+    return doc.to_dict() if doc.exists else None
+
+def add_message_to_ticket(ticket_id, role, content):
+    """Appends a message to the conversation history of a ticket."""
+    doc_ref = db.collection('tickets').document(ticket_id)
+    doc_ref.update({
+        'messages': firestore.ArrayUnion([{'role': role, 'content': content}])
+    })
 
 def get_user_tickets(user_id):
     """Retrieves tickets for a specific user."""

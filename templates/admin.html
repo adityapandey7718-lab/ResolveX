@@ -189,7 +189,13 @@
                         </td>
                         <td>
                             <strong>{{ t.intent|capitalize }}</strong><br>
-                            <small>{{ t.message[:50] }}{% if t.message|length > 50 %}...{% endif %}</small>
+                            <small>
+                                {% if t.messages %}
+                                    {{ t.messages[0].content[:50] }}{% if t.messages[0].content|length > 50 %}...{% endif %}
+                                {% else %}
+                                    {{ t.message[:50] if t.message else 'No message' }}{% if t.message and t.message|length > 50 %}...{% endif %}
+                                {% endif %}
+                            </small>
                         </td>
                         <td>
                             {% if t.feedback == 'positive' %}

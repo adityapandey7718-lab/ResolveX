@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 
 # Load env vars
 load_dotenv()
+print("DEBUG: Environment variables loaded from .env")
 
 from services.firebase_service import verify_token, save_ticket, get_user_tickets, get_all_tickets, update_ticket_feedback, get_ticket_stats
 from services.genai_service import generate_support_response
@@ -106,21 +107,35 @@ def chat():
         return jsonify({"error": "Invalid request format"}), 400
 
     message = data.get("message", "").strip()
+    ticket_id = data.get("ticket_id")
+    
     if not message:
         return jsonify({"error": "Message is required"}), 400
 
-    # Process with GenAI
-    ai_result = generate_support_response(message)
-    
-    ticket_id = str(uuid.uuid4())[:8]
     user_id = session.get('user_id')
+    history = []
+    
+    if ticket_id:
+        from services.firebase_service import get_ticket
+        ticket = get_ticket(ticket_id)
+        if ticket and ticket.get('user_id') == user_id:
+            history = ticket.get('messages', [])
+    else:
+        ticket_id = str(uuid.uuid4())[:8]
+
+    # Process with GenAI
+    ai_result = generate_support_response(message, history)
+    
+    # Update messages list
+    history.append({"role": "user", "content": message})
+    history.append({"role": "assistant", "content": ai_result['response']})
 
     ticket_data = {
         "id": ticket_id,
         "user_id": user_id,
-        "message": message,
+        "messages": history,
         "intent": ai_result['intent'],
-        "response": ai_result['response'],
+        "response": ai_result['response'], # Store last response for compatibility
         "confidence": ai_result['confidence'],
         "status": ai_result['status'],
         "feedback": None
@@ -134,8 +149,21 @@ def chat():
         "intent": ai_result['intent'],
         "response": ai_result['response'],
         "confidence": ai_result['confidence'],
-        "status": ai_result['status']
+        "status": ai_result['status'],
+        "history": history
     })
+
+@app.route("/api/ticket/<ticket_id>")
+@login_required
+def get_ticket_details(ticket_id):
+    from services.firebase_service import get_ticket
+    user_id = session.get('user_id')
+    ticket = get_ticket(ticket_id)
+    
+    if not ticket or ticket.get('user_id') != user_id:
+        return jsonify({"error": "Ticket not found"}), 404
+        
+    return jsonify(ticket)
 
 @app.route("/feedback/<ticket_id>", methods=["POST"])
 @login_required
@@ -159,6 +187,11 @@ def feedback(ticket_id):
 def my_tickets():
     user_id = session.get('user_id')
     tickets = get_user_tickets(user_id)
+    
+    # Return JSON if requested by the sidebar
+    if request.args.get('json'):
+        return jsonify(tickets)
+        
     return render_template("my_tickets.html", tickets=tickets)
 
 # -----------------------------

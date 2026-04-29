@@ -23,52 +23,66 @@
                 </button>
             </div>
         </div>
-    </div>
-
-    <div class="container">
-        <div class="header-section">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h1>AI Support Assistant</h1>
-                    <p class="subtitle">Resolving issues at the speed of thought</p>
-                </div>
-                <button class="btn btn-secondary" onclick="resetChat()" style="padding: 8px 16px;">
-                    Clear Chat
-                </button>
+    </div>    <div class="app-layout">
+        <!-- Sidebar for History -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h3>Previous Chats</h3>
+            </div>
+            <div id="ticketList" class="ticket-list">
+                <!-- Recent tickets will be loaded here -->
+                <div class="loading-spinner" style="padding: 20px; text-align: center; opacity: 0.5;">Loading history...</div>
             </div>
         </div>
 
-        <div id="chatHistory" class="chat-history">
-            <!-- Messages will be appended here -->
-            <div class="message ai-message">
-                Hello! I'm ResolveX. How can I help you today? Whether it's billing, technical issues, or account management, I'm here to assist.
-            </div>
-        </div>
-
-        <div id="errorAlert" class="alert alert-error hidden" style="margin: 10px 30px;">
-            <span id="errorMessage"></span>
-            <button type="button" class="alert-close" onclick="closeAlert('errorAlert')" style="background:none; border:none; cursor:pointer; color:inherit; font-size:18px;">&times;</button>
-        </div>
-
-        <div class="chat-form-container">
-            <form id="chatForm" class="chat-form">
-                <div class="input-wrapper">
-                    <textarea 
-                        id="message" 
-                        placeholder="Describe your issue..." 
-                        required
-                        maxlength="500"
-                        rows="1"
-                    ></textarea>
-                    <div class="char-count">
-                        <span id="charCount">0</span>/500
+        <!-- Main Chat Area -->
+        <div class="main-content">
+            <div class="container" style="max-width: 800px; margin: 20px auto;">
+                <div class="header-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h1>AI Support Assistant</h1>
+                            <p class="subtitle">Resolving issues at the speed of thought</p>
+                        </div>
+                        <button class="btn btn-secondary" onclick="resetChat()" style="padding: 8px 16px;">
+                            New Chat
+                        </button>
                     </div>
                 </div>
-                <button type="submit" id="submitBtn" class="btn btn-primary">
-                    <span class="btn-text">Send</span>
-                    <div class="spinner hidden"></div>
-                </button>
-            </form>
+
+                <div id="chatHistory" class="chat-history">
+                    <!-- Messages will be appended here -->
+                    <div class="message ai-message">
+                        Hello! I'm ResolveX. How can I help you today? Whether it's billing, technical issues, or account management, I'm here to assist.
+                    </div>
+                </div>
+
+                <div id="errorAlert" class="alert alert-error hidden" style="margin: 10px 30px;">
+                    <span id="errorMessage"></span>
+                    <button type="button" class="alert-close" onclick="closeAlert('errorAlert')" style="background:none; border:none; cursor:pointer; color:inherit; font-size:18px;">&times;</button>
+                </div>
+
+                <div class="chat-form-container">
+                    <form id="chatForm" class="chat-form">
+                        <div class="input-wrapper">
+                            <textarea 
+                                id="message" 
+                                placeholder="Describe your issue..." 
+                                required
+                                maxlength="500"
+                                rows="1"
+                            ></textarea>
+                            <div class="char-count">
+                                <span id="charCount">0</span>/500
+                            </div>
+                        </div>
+                        <button type="submit" id="submitBtn" class="btn btn-primary">
+                            <span class="btn-text">Send</span>
+                            <div class="spinner hidden"></div>
+                        </button>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -99,30 +113,6 @@
         </div>
     </template>
 
-    <div class="info-section">
-        <div class="categories-grid">
-            <div class="category-card">
-                <span class="category-icon">💳</span>
-                <h4>Billing</h4>
-                <p>Refunds & Subs</p>
-            </div>
-            <div class="category-card">
-                <span class="category-icon">🔧</span>
-                <h4>Technical</h4>
-                <p>Errors & Bugs</p>
-            </div>
-            <div class="category-card">
-                <span class="category-icon">👤</span>
-                <h4>Account</h4>
-                <p>Pass & Profile</p>
-            </div>
-        </div>
-    </div>
-
-    <footer class="footer">
-        <p>&copy; 2026 ResolveX. Powered by Advanced AI.</p>
-    </footer>
-
     <script src="/static/main.js"></script>
 </body>
-</html>
+</html>

@@ -24,7 +24,13 @@
         <tr>
             <td>{{ t.id }}</td>
             <td style="{% if t.status == 'Escalated' %}color:red; font-weight:bold;{% endif %}">{{ t.status }}</td>
-            <td>{{ t.message }}</td>
+            <td>
+                {% if t.messages %}
+                    {{ t.messages[0].content }}
+                {% else %}
+                    {{ t.message }}
+                {% endif %}
+            </td>
             <td>{{ t.intent }}</td>
             <td>{{ t.response }}</td>
             <td>{{ t.feedback }}</td>
