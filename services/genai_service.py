@@ -81,20 +81,28 @@ def cross_verify_response(user_message, ai_response, kb):
         print(f"Judge Error: {e}")
         return {"is_grounded": True, "confidence_score": 100} # Fallback to original
 
-def generate_support_response(user_message, history=None):
+def generate_support_response(user_message, chat_history=None):
     """
     Uses Gemini to analyze the message, classify intent, and generate a response.
-    Maintains conversation context using the provided history.
+    Includes chat history for conversational context.
     """
     kb = get_knowledge_base()
     
     # 1. Semantic Similarity Check
     similarity = calculate_semantic_similarity(user_message, kb)
     
+    history_context = ""
+    if chat_history:
+        history_context = "Conversation History:\n" + "\n".join([f"{m['role']}: {m['content']}" for m in chat_history])
+    
     system_instruction = f"""
     You are an AI customer support agent for ResolveX. 
     Knowledge Base:
     {json.dumps(kb, indent=2)}
+    
+    {history_context}
+    
+    Current User Message: {user_message}
     
     Role & Policies:
     1. YOUR ROLE: You guide users with TAILORED, STEP-BY-STEP PROCEDURES for Billing, Technical, and Account issues.

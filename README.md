@@ -1,83 +1,49 @@
-# ResolveX - Conversational AI Support System
+# ResolveX - Intelligent AI Support with Learning Feedback Loops
 
 ![ResolveX](https://img.shields.io/badge/version-2.0-blue)
-![Python](https://img.shields.io/badge/Python-3.13-green)
-![Gemini](https://img.shields.io/badge/AI-Gemini%201.5%20Flash-purple)
-![Firestore](https://img.shields.io/badge/DB-Firestore-orange)
+![Python](https://img.shields.io/badge/Python-3.10%2B-green)
+![Flask](https://img.shields.io/badge/Flask-3.0-yellow)
+![AI](https://img.shields.io/badge/Gemini-Flash--Latest-orange)
 
-ResolveX is a state-of-the-art, conversational AI customer support system. It leverages **Google Gemini** for intelligent, multi-turn dialogues and **Firebase Firestore** for persistent thread management. The system is designed to guide users through complex billing, technical, and account issues while learning and improving from every interaction.
+ResolveX is a self-improving AI customer support automation system. Unlike traditional chatbots, ResolveX features a **Learning Feedback Loop** where it captures unresolved queries and agent corrections to continuously improve its Knowledge Base.
 
 ## 🌟 Key Features
 
-- **💬 Multi-Turn Conversations**: Maintains full context of the support session, allowing for follow-up questions and continuous problem-solving.
-- **🤖 Powered by Gemini**: Uses `gemini-flash-lite-latest` for fast, intelligent, and grounded responses.
-- **📚 Dynamic Knowledge Base**: All AI responses are grounded in a custom Knowledge Base stored in Firestore, ensuring accuracy and brand consistency.
-- **🛡️ Fact-Checking (Judge AI)**: A secondary AI layer verifies responses against the Knowledge Base to prevent hallucinations and ensure grounding.
-- **📊 Admin Dashboard**: High-level analytics on ticket volume, escalation rates, and user feedback (Positive/Negative).
-- **🔄 Human-in-the-Loop Learning**: Admins can review negative feedback and update the Knowledge Base directly from the dashboard to improve future responses.
-- **📂 Persistent Chat History**: Users can resume any of their previous conversations from a dedicated sidebar.
-- **🌓 Adaptive Theming**: Fully responsive UI with a sleek Dark Mode.
-
-## 📋 Supported Support Domains
-
-| Category | Role | Policy |
-|----------|------|--------|
-| **💳 Billing** | Guidance & Information | ResolveX is NOT a bank. Users are guided to contact their bank for refunds. |
-| **🔧 Technical** | Troubleshooting | Step-by-step procedures for app errors, bugs, and connectivity issues. |
-| **👤 Account** | Security & Profile | Guidance on password resets, 2FA, and profile management. |
-
-## 🚀 Setup & Installation
-
-### Prerequisites
-- Python 3.10+
-- Firebase Project (Firestore & Auth enabled)
-- Google AI Studio API Key (Gemini)
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/adityapandey7718-lab/ResolveX.git
-   cd ResolveX
-   ```
-
-2. **Configure Environment Variables**
-   Create a `.env` file in the root directory:
-   ```env
-   GOOGLE_API_KEY=your_gemini_api_key
-   FIREBASE_CREDENTIALS_PATH=firebase_credentials.json
-   FIREBASE_PROJECT_ID=your_project_id
-   ```
-
-3. **Install Dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Run the application**
-   ```bash
-   python app.py
-   ```
-
-## 🛠️ Technology Stack
-
-- **Backend**: Flask (Python)
-- **AI/ML**: Google Generative AI (Gemini 1.5/3.0), NumPy (Semantic Similarity)
-- **Database**: Google Cloud Firestore (NoSQL)
-- **Authentication**: Firebase Authentication
-- **Frontend**: HTML5, Vanilla CSS, JavaScript (ES6)
-- **Charts**: Chart.js
+- **🤖 AI-Native Response Generation**: Powered by Google Gemini Flash with dynamic RAG (Retrieval-Augmented Generation).
+- **🛡️ Cross-Verification (Judge AI)**: Every response is verified by a secondary "Judge" prompt to prevent hallucinations and ensure grounding in the Knowledge Base.
+- **📈 Semantic Confidence Scoring**: Uses `text-embedding-004` to calculate the mathematical similarity between user queries and known documentation.
+- **🔄 Learning Feedback Loop**: captures "Not Helpful" responses and allows users to suggest corrections.
+- **👨‍💻 Human-in-the-Loop Dashboard**: A premium admin interface to review escalated tickets and promote corrections to the Knowledge Base with one click.
+- **🔐 Enterprise Security**: Firebase Authentication (Google & Email) and secure environment management.
 
 ## 🔄 The Learning Loop
+1. **User Query**: User asks a question.
+2. **AI Analysis**: System calculates semantic similarity and verifies grounding.
+3. **Escalation**: If confidence is low (<60%), the ticket is marked as "Escalated."
+4. **Feedback**: User can mark a response as "Not Helpful" and provide the correct solution.
+5. **Human Oversight**: Admin reviews the correction in the Dashboard.
+6. **Knowledge Injection**: Admin clicks "To KB," and the AI instantly learns the new solution for future queries.
 
-1. **Interaction**: User chats with Gemini about a problem.
-2. **Verification**: The "Judge" AI checks if the response matches the Knowledge Base.
-3. **Feedback**: The user rates the response (👍/👎).
-4. **Correction**: If negative, the user provides the correct answer/category.
-5. **Improvement**: Admins review corrections and update the KB with one click, immediately improving the AI for all future users.
+## 🚀 Tech Stack
+- **Backend**: Flask (Python 3.13)
+- **AI/ML**: Google Generative AI (Gemini Flash, Text Embeddings)
+- **Database**: Google Firestore (NoSQL)
+- **Auth**: Firebase Authentication
+- **Frontend**: Vanilla JS, CSS3 (Glassmorphism design)
 
-## 📄 License
-This project is provided for educational and commercial support automation purposes.
+## 📁 Project Structure
+- `app.py`: Main Flask application and API routes.
+- `services/genai_service.py`: AI logic, Judge prompt, and Embedding similarity.
+- `services/firebase_service.py`: Firestore and Auth integration.
+- `templates/admin.html`: Interactive Human-in-the-Loop dashboard.
+- `templates/index.html`: User chat interface with feedback form.
+- `static/main.js`: Frontend logic and interactive UI.
+
+## 🛠️ Setup Instructions
+1. Clone the repository.
+2. Install dependencies: `pip install -r requirements.txt`.
+3. Set up your `.env` file with `GOOGLE_API_KEY` and Firebase config.
+4. Run the app: `python app.py`.
 
 ---
-**ResolveX**: Intelligent support, resolved at the speed of thought.
+**ResolveX**: *Building support systems that actually get smarter.*

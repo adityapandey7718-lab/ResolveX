@@ -133,6 +133,7 @@
     </div>
 
     <div style="padding: 30px;">
+        <!-- Stats Summary -->
         <div class="admin-grid">
             <div class="stat-card">
                 <h3>Total Tickets</h3>
@@ -143,15 +144,16 @@
                 <p style="color: #ef4444;">{{ escalated }}</p>
             </div>
             <div class="stat-card">
-                <h3>Positive Feedback</h3>
+                <h3>Positive</h3>
                 <p style="color: #10b981;">{{ positive }}</p>
             </div>
             <div class="stat-card">
-                <h3>Negative Feedback</h3>
+                <h3>Negative</h3>
                 <p style="color: #f59e0b;">{{ negative }}</p>
             </div>
         </div>
 
+        <!-- Charts Section -->
         <div class="charts-section">
             <div class="chart-container">
                 <h3>Feedback Distribution</h3>
@@ -167,6 +169,7 @@
             </div>
         </div>
 
+        <!-- Ticket Table -->
         <div class="ticket-table-container">
             <table>
                 <thead>
@@ -190,11 +193,7 @@
                         <td>
                             <strong>{{ t.intent|capitalize }}</strong><br>
                             <small>
-                                {% if t.messages %}
-                                    {{ t.messages[0].content[:50] }}{% if t.messages[0].content|length > 50 %}...{% endif %}
-                                {% else %}
-                                    {{ t.message[:50] if t.message else 'No message' }}{% if t.message and t.message|length > 50 %}...{% endif %}
-                                {% endif %}
+                                {{ t.message[:50] if t.message else 'No message' }}{% if t.message and t.message|length > 50 %}...{% endif %}
                             </small>
                         </td>
                         <td>
@@ -337,49 +336,55 @@
     const total = {{ total }};
     const positive = {{ positive }};
     const negative = {{ negative }};
-    const unrated = total - positive - negative;
+    const unrated = Math.max(0, total - positive - negative);
     
     const escalated = {{ escalated }};
-    const resolved = total - escalated;
+    const resolved = Math.max(0, total - escalated);
 
     const isDark = document.body.classList.contains('dark');
     const textColor = isDark ? '#f8fafc' : '#0f172a';
 
     // Feedback Chart
     new Chart(document.getElementById('feedbackChart'), {
-        type: 'pie',
+        type: 'doughnut',
         data: {
             labels: ['Positive', 'Negative', 'Unrated'],
             datasets: [{
                 data: [positive, negative, unrated],
                 backgroundColor: ['#10b981', '#f59e0b', '#94a3b8'],
-                borderWidth: 0
+                borderWidth: 0,
+                hoverOffset: 10
             }]
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: { position: 'bottom', labels: { color: textColor, font: { family: 'Inter', weight: '600' } } }
-            }
+            },
+            cutout: '70%'
         }
     });
 
     // Status Chart
     new Chart(document.getElementById('statusChart'), {
-        type: 'pie',
+        type: 'doughnut',
         data: {
-            labels: ['Resolved', 'Pending'],
+            labels: ['Resolved', 'Escalated'],
             datasets: [{
                 data: [resolved, escalated],
                 backgroundColor: ['#4f46e5', '#ef4444'],
-                borderWidth: 0
+                borderWidth: 0,
+                hoverOffset: 10
             }]
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: { position: 'bottom', labels: { color: textColor, font: { family: 'Inter', weight: '600' } } }
-            }
+            },
+            cutout: '70%'
         }
     });
 </script>

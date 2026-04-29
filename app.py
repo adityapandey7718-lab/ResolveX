@@ -120,22 +120,29 @@ def chat():
         ticket = get_ticket(ticket_id)
         if ticket and ticket.get('user_id') == user_id:
             history = ticket.get('messages', [])
-    else:
-        ticket_id = str(uuid.uuid4())[:8]
+    # Manage Conversational Memory
+    if 'chat_history' not in session:
+        session['chat_history'] = []
+    
+    chat_history = session['chat_history'][-4:] # Keep last 4 messages for context
 
     # Process with GenAI
-    ai_result = generate_support_response(message, history)
+    ai_result = generate_support_response(message, chat_history=chat_history)
     
-    # Update messages list
-    history.append({"role": "user", "content": message})
-    history.append({"role": "assistant", "content": ai_result['response']})
+    # Update History
+    session['chat_history'].append({"role": "user", "content": message})
+    session['chat_history'].append({"role": "assistant", "content": ai_result['response']})
+    session.modified = True
+
+    ticket_id = str(uuid.uuid4())[:8]
+    user_id = session.get('user_id')
 
     ticket_data = {
         "id": ticket_id,
         "user_id": user_id,
-        "messages": history,
+        "message": message,
         "intent": ai_result['intent'],
-        "response": ai_result['response'], # Store last response for compatibility
+        "response": ai_result['response'],
         "confidence": ai_result['confidence'],
         "status": ai_result['status'],
         "feedback": None
@@ -149,8 +156,7 @@ def chat():
         "intent": ai_result['intent'],
         "response": ai_result['response'],
         "confidence": ai_result['confidence'],
-        "status": ai_result['status'],
-        "history": history
+        "status": ai_result['status']
     })
 
 @app.route("/api/ticket/<ticket_id>")
