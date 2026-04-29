@@ -1,5 +1,5 @@
 let currentTicketId = null;
-let messageInput, chatForm, submitBtn, resultDiv, errorAlert, charCountSpan, themeToggle;
+let messageInput, chatForm, submitBtn, chatHistory, errorAlert, charCountSpan, themeToggle;
 
 function applyTheme(theme) {
     if (theme === 'dark') {
@@ -10,12 +10,14 @@ function applyTheme(theme) {
         if (themeToggle) themeToggle.innerText = '🌙 Dark Mode';
     }
     localStorage.setItem('resolvexTheme', theme);
+    document.cookie = `theme=${theme}; path=/; max-age=31536000`;
 }
 
 function showError(message) {
     const errorMessageElm = document.getElementById('errorMessage');
     if (errorMessageElm) errorMessageElm.innerText = message;
     if (errorAlert) errorAlert.classList.remove('hidden');
+    setTimeout(() => closeAlert('errorAlert'), 5000);
 }
 
 function closeAlert(alertId) {
@@ -31,93 +33,111 @@ function setLoading(isLoading) {
 
     if (isLoading) {
         spinner?.classList.remove('hidden');
-        if (btnText) btnText.textContent = 'Sending...';
+        if (btnText) btnText.textContent = '...';
     } else {
         spinner?.classList.add('hidden');
-        if (btnText) btnText.textContent = 'Send Message';
+        if (btnText) btnText.textContent = 'Send';
     }
 }
 
-function disableFeedbackButtons(disabled) {
-    const yes = document.getElementById('feedbackYes');
-    const no = document.getElementById('feedbackNo');
-    if (yes) yes.disabled = disabled;
-    if (no) no.disabled = disabled;
-}
+function appendMessage(content, type, data = null) {
+    if (!chatHistory) return;
 
-function toggleDetailedFeedback() {
-    const el = document.getElementById('detailedFeedback');
-    if (el) el.classList.toggle('hidden');
-}
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `message ${type}-message`;
+    
+    const textSpan = document.createElement('span');
+    textSpan.innerText = content;
+    msgDiv.appendChild(textSpan);
 
-function resetChat() {
-    if (messageInput) messageInput.value = '';
-    if (charCountSpan) charCountSpan.textContent = '0';
-    if (resultDiv) resultDiv.classList.add('hidden');
-    currentTicketId = null;
-    closeAlert('errorAlert');
-    messageInput?.focus();
-}
+    if (type === 'ai' && data) {
+        const template = document.getElementById('feedbackTemplate');
+        if (template) {
+            const clone = template.content.cloneNode(true);
+            
+            // Populate data
+            clone.querySelector('.intent-text').textContent = data.intent;
+            clone.querySelector('.confidence-text').textContent = `${data.confidence}%`;
+            
+            const pill = clone.querySelector('.status-pill');
+            pill.textContent = data.status;
+            pill.style.background = data.status === 'Escalated' ? '#ef4444' : '#10b981';
+            pill.style.color = 'white';
 
-async function sendFeedback(helpful) {
-    if (!currentTicketId) {
-        showError('Error: No ticket ID found.');
-        return;
+            // Buttons
+            const yesBtn = clone.querySelector('.feedback-yes');
+            const noBtn = clone.querySelector('.feedback-no');
+            const detailed = clone.querySelector('.detailed-feedback');
+            const submitBtn = clone.querySelector('.submit-detailed');
+            const categorySelect = clone.querySelector('.correct-category');
+            const answerText = clone.querySelector('.correct-answer');
+
+            yesBtn.onclick = () => handleFeedback(data.ticket_id, true, msgDiv);
+            noBtn.onclick = () => detailed.classList.toggle('hidden');
+            
+            submitBtn.onclick = () => {
+                handleFeedback(data.ticket_id, false, msgDiv, categorySelect.value, answerText.value);
+            };
+
+            msgDiv.appendChild(clone);
+        }
     }
 
-    disableFeedbackButtons(true);
+    chatHistory.appendChild(msgDiv);
+    chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: 'smooth' });
+}
+
+async function handleFeedback(ticketId, helpful, container, correctCat = null, correctAns = null) {
+    const feedbackSection = container.querySelector('.feedback-container');
+    const btns = feedbackSection.querySelectorAll('button');
+    btns.forEach(b => b.disabled = true);
 
     let payload = { helpful };
-    
     if (!helpful) {
-        const correctCategory = document.getElementById('correctCategory')?.value;
-        const correctAnswer = document.getElementById('correctAnswer')?.value;
-        payload.correct_category = correctCategory;
-        payload.correct_answer = correctAnswer;
+        payload.correct_category = correctCat;
+        payload.correct_answer = correctAns;
     }
 
     try {
-        const res = await fetch(`/feedback/${currentTicketId}`, {
+        const res = await fetch(`/feedback/${ticketId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
 
-        if (!res.ok) throw new Error(`Server error: ${res.status}`);
+        if (!res.ok) throw new Error('Feedback failed');
 
-        const feedbackSection = document.querySelector('.feedback-section');
-        if (!feedbackSection) return;
-
-        const originalContent = feedbackSection.innerHTML;
-        feedbackSection.innerHTML = `\n            <div style="text-align: center; color: #10b981; font-weight: 600;">\n                ✓ Thank you for your feedback! The model is being updated...\n            </div>\n        `;
-
-        setTimeout(() => {
-            feedbackSection.innerHTML = originalContent;
-            disableFeedbackButtons(false);
-        }, 3000);
-    } catch (error) {
-        console.error('Error sending feedback:', error);
-        showError('Failed to send feedback. Please try again.');
-        disableFeedbackButtons(false);
+        feedbackSection.innerHTML = `<div style="color: #10b981; font-size: 12px; margin-top: 10px; font-weight: 600;">✓ Feedback received!</div>`;
+    } catch (e) {
+        showError('Failed to send feedback');
+        btns.forEach(b => b.disabled = false);
     }
+}
+
+function resetChat() {
+    if (chatHistory) {
+        chatHistory.innerHTML = `\n            <div class="message ai-message">\n                Hello! I'm ResolveX. How can I help you today? Whether it's billing, technical issues, or account management, I'm here to assist.\n            </div>\n        `;
+    }
+    if (messageInput) {
+        messageInput.value = '';
+        messageInput.style.height = 'auto';
+    }
+    currentTicketId = null;
 }
 
 async function submitHandler(event) {
     event.preventDefault();
-    closeAlert('errorAlert');
+    const message = messageInput?.value.trim();
+    if (!message) return;
 
-    const message = messageInput?.value.trim() || '';
-
-    if (!message) {
-        showError('Please enter a message before sending.');
+    if (message.length < 5) {
+        showError('Message too short');
         return;
     }
 
-    if (message.length < 10) {
-        showError('Please provide more details (at least 10 characters).');
-        return;
-    }
-
+    appendMessage(message, 'user');
+    messageInput.value = '';
+    messageInput.style.height = 'auto';
     setLoading(true);
 
     try {
@@ -127,44 +147,14 @@ async function submitHandler(event) {
             body: JSON.stringify({ message })
         });
 
-        if (!res.ok) throw new Error(`Server error: ${res.status}`);
-
+        if (!res.ok) throw new Error('Server error');
         const data = await res.json();
-
-        if (!data.ticket_id || !data.intent || !data.response) {
-            throw new Error('Invalid response format from server.');
-        }
-
+        
+        appendMessage(data.response, 'ai', data);
         currentTicketId = data.ticket_id;
-
-        const intentEl = document.getElementById('intent');
-        const responseEl = document.getElementById('response');
-
-        if (intentEl) intentEl.innerText = data.intent.charAt(0).toUpperCase() + data.intent.slice(1);
-        if (responseEl) responseEl.innerText = data.response;
-
-        const confidenceEl = document.getElementById('confidence');
-        if (confidenceEl && data.confidence !== undefined) {
-            confidenceEl.innerText = `${data.confidence}%`;
-        }
-
-        const statusEl = document.getElementById('status');
-        if (statusEl && data.status) {
-            statusEl.innerText = data.status;
-            if (data.status === 'Escalated') {
-                statusEl.style.backgroundColor = '#ef4444'; // red
-                statusEl.style.color = 'white';
-            } else {
-                statusEl.style.backgroundColor = '#10b981'; // green
-                statusEl.style.color = 'white';
-            }
-        }
-
-        resultDiv?.classList.remove('hidden');
-        resultDiv?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    } catch (error) {
-        console.error('Error:', error);
-        showError('Failed to get response. Please try again.');
+    } catch (e) {
+        appendMessage('Sorry, I encountered an error. Please try again.', 'ai');
+        showError('Connection error');
     } finally {
         setLoading(false);
     }
@@ -174,7 +164,7 @@ function initApp() {
     messageInput = document.getElementById('message');
     chatForm = document.getElementById('chatForm');
     submitBtn = document.getElementById('submitBtn');
-    resultDiv = document.getElementById('result');
+    chatHistory = document.getElementById('chatHistory');
     errorAlert = document.getElementById('errorAlert');
     charCountSpan = document.getElementById('charCount');
     themeToggle = document.getElementById('themeToggle');
@@ -182,27 +172,25 @@ function initApp() {
     const savedTheme = localStorage.getItem('resolvexTheme') || 'light';
     applyTheme(savedTheme);
 
-    if (themeToggle) {
-        themeToggle.addEventListener('click', () => {
-            const nextTheme = document.body.classList.contains('dark') ? 'light' : 'dark';
-            applyTheme(nextTheme);
-        });
-    }
-
-    messageInput?.addEventListener('input', function() {
-        charCountSpan.textContent = this.value.length;
+    themeToggle?.addEventListener('click', () => {
+        const next = document.body.classList.contains('dark') ? 'light' : 'dark';
+        applyTheme(next);
     });
 
-    messageInput?.addEventListener('keydown', function(e) {
+    messageInput?.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+        if (charCountSpan) charCountSpan.textContent = this.value.length;
+    });
+
+    messageInput?.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            chatForm?.requestSubmit();
+            chatForm.dispatchEvent(new Event('submit'));
         }
     });
 
     chatForm?.addEventListener('submit', submitHandler);
-
-    messageInput?.focus();
 }
 
-document.addEventListener('DOMContentLoaded', initApp);
+document.addEventListener('DOMContentLoaded', initApp);

@@ -5,7 +5,7 @@
     <title>Login - ResolveX</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
-<body class="auth-body">
+<body class="auth-body {{ 'dark' if request.cookies.get('theme') == 'dark' else '' }}">
 
     <div class="auth-container">
         <div class="auth-card">
@@ -14,12 +14,12 @@
 
             <!-- Email/Password Login Form -->
             <div id="emailLoginForm">
-                <input type="email" id="loginEmail" placeholder="Email" required style="width: 100%; margin-bottom: 10px; padding: 10px; border-radius: 5px; border: 1px solid #ddd;">
-                <input type="password" id="loginPassword" placeholder="Password" required style="width: 100%; margin-bottom: 15px; padding: 10px; border-radius: 5px; border: 1px solid #ddd;">
+                <input type="email" id="loginEmail" placeholder="Email" required>
+                <input type="password" id="loginPassword" placeholder="Password" required>
                 <button id="emailLoginBtn" class="btn btn-primary" style="width: 100%; margin-bottom: 15px;">Login with Email</button>
             </div>
 
-            <div style="text-align: center; margin-bottom: 15px; color: #777;">OR</div>
+            <div style="text-align: center; margin-bottom: 15px; color: var(--text-muted);">OR</div>
 
             <!-- Google Sign-In Button -->
             <button id="googleSignInBtn" class="btn btn-primary" style="background-color: #4285F4; border-color: #4285F4; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%;">
@@ -27,15 +27,16 @@
                 Sign in with Google
             </button>
             
-            <div id="loginError" style="color: red; margin-top: 15px; display: none; text-align: center;"></div>
+            <div id="loginError" style="color: #ef4444; margin-top: 15px; display: none; text-align: center; font-size: 14px;"></div>
 
-            <p class="auth-switch" style="margin-top: 20px; text-align: center;">
+            <p class="auth-switch">
                 Don't have an account?
                 <a href="/signup">Sign Up</a>
             </p>
 
         </div>
     </div>
+
 
     <!-- Firebase SDKs -->
     <script type="module">
