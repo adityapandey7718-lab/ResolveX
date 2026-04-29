@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - ResolveX</title>
     <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         .admin-grid {
             display: grid;
@@ -25,6 +27,33 @@
         .stat-card h3 { font-size: 13px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
         .stat-card p { font-size: 28px; font-weight: 800; color: var(--text); }
         
+        .charts-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        .chart-container {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 24px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+        .chart-container h3 {
+            font-size: 16px;
+            margin-bottom: 20px;
+            color: var(--text);
+        }
+        .canvas-wrapper {
+            position: relative;
+            height: 250px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
         .ticket-table-container {
             background: var(--card-bg);
             border-radius: 20px;
@@ -86,7 +115,6 @@
         .modal-footer { margin-top: 25px; display: flex; justify-content: flex-end; gap: 12px; }
         .close-modal { position: absolute; right: 25px; top: 25px; font-size: 24px; cursor: pointer; color: var(--text-muted); }
     </style>
-
 </head>
 <body class="{{ 'dark' if request.cookies.get('theme') == 'dark' else '' }}">
 
@@ -98,79 +126,96 @@
     </div>
 </div>
 
-<div class="container" style="max-width: 1000px;">
+<div class="container" style="max-width: 1100px; height: auto; min-height: auto;">
     <div class="header-section">
         <h1>Dashboard Overview</h1>
         <p class="subtitle">Monitor and manage AI support interactions</p>
     </div>
 
-    <div class="admin-grid">
-        <div class="stat-card">
-            <h3>Total Tickets</h3>
-            <p>{{ total }}</p>
+    <div style="padding: 30px;">
+        <div class="admin-grid">
+            <div class="stat-card">
+                <h3>Total Tickets</h3>
+                <p>{{ total }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>Escalated</h3>
+                <p style="color: #ef4444;">{{ escalated }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>Positive Feedback</h3>
+                <p style="color: #10b981;">{{ positive }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>Negative Feedback</h3>
+                <p style="color: #f59e0b;">{{ negative }}</p>
+            </div>
         </div>
-        <div class="stat-card">
-            <h3>Escalated</h3>
-            <p style="color: #ef4444;">{{ escalated }}</p>
-        </div>
-        <div class="stat-card">
-            <h3>Positive</h3>
-            <p style="color: #10b981;">{{ positive }}</p>
-        </div>
-        <div class="stat-card">
-            <h3>Negative</h3>
-            <p style="color: #f59e0b;">{{ negative }}</p>
-        </div>
-    </div>
 
-    <div class="ticket-table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th>Ticket</th>
-                    <th>Status</th>
-                    <th>Issue</th>
-                    <th>Feedback</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for t in tickets %}
-                <tr>
-                    <td><small>#{{ t.id }}</small></td>
-                    <td>
-                        <span class="status-pill {% if t.status == 'Escalated' %}status-escalated{% else %}status-resolved{% endif %}">
-                            {{ t.status }}
-                        </span>
-                    </td>
-                    <td>
-                        <strong>{{ t.intent|capitalize }}</strong><br>
-                        <small>{{ t.message[:50] }}{% if t.message|length > 50 %}...{% endif %}</small>
-                    </td>
-                    <td>
-                        {% if t.feedback == 'positive' %}
-                            <span class="feedback-pill">👍</span>
-                        {% elif t.feedback == 'negative' %}
-                            <span class="feedback-pill">👎</span>
-                            {% if t.correct_answer or t.correct_category %}
-                                <br><small style="color: #ef4444;">Correction provided</small>
+        <div class="charts-section">
+            <div class="chart-container">
+                <h3>Feedback Distribution</h3>
+                <div class="canvas-wrapper">
+                    <canvas id="feedbackChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-container">
+                <h3>Ticket Resolution</h3>
+                <div class="canvas-wrapper">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="ticket-table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Ticket</th>
+                        <th>Status</th>
+                        <th>Issue</th>
+                        <th>Feedback</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in tickets %}
+                    <tr>
+                        <td><small>#{{ t.id }}</small></td>
+                        <td>
+                            <span class="status-pill {% if t.status == 'Escalated' %}status-escalated{% else %}status-resolved{% endif %}">
+                                {{ t.status }}
+                            </span>
+                        </td>
+                        <td>
+                            <strong>{{ t.intent|capitalize }}</strong><br>
+                            <small>{{ t.message[:50] }}{% if t.message|length > 50 %}...{% endif %}</small>
+                        </td>
+                        <td>
+                            {% if t.feedback == 'positive' %}
+                                <span class="feedback-pill">👍</span>
+                            {% elif t.feedback == 'negative' %}
+                                <span class="feedback-pill">👎</span>
+                                {% if t.correct_answer or t.correct_category %}
+                                    <br><small style="color: #ef4444;">Correction</small>
+                                {% endif %}
+                            {% else %}
+                                <span style="opacity: 0.3;">None</span>
                             {% endif %}
-                        {% else %}
-                            <span style="opacity: 0.3;">None</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <div class="actions">
-                            <button class="action-btn btn-edit" onclick="openEditModal('{{ t.id }}', '{{ t.status }}', `{{ t.response|replace('`', '\\`') }}`)">Edit</button>
-                            {% if t.feedback == 'negative' and t.correct_answer %}
-                            <button class="action-btn btn-kb" onclick="openKBModal('{{ t.correct_category or t.intent }}', `{{ t.correct_answer|replace('`', '\\`') }}`)">To KB</button>
-                            {% endif %}
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                        </td>
+                        <td>
+                            <div class="actions">
+                                <button class="action-btn btn-edit" onclick="openEditModal('{{ t.id }}', '{{ t.status }}', `{{ t.response|replace('`', '\\`') }}`)">Edit</button>
+                                {% if t.feedback == 'negative' and t.correct_answer %}
+                                <button class="action-btn btn-kb" onclick="openKBModal('{{ t.correct_category or t.intent }}', `{{ t.correct_answer|replace('`', '\\`') }}`)">To KB</button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
@@ -182,15 +227,15 @@
             <h3>Edit Ticket Response</h3>
         </div>
         <div class="form-group">
-            <label style="display: block; margin-bottom: 5px;">Status</label>
-            <select id="editStatus" style="width: 100%; padding: 10px; margin-bottom: 15px; border-radius: 8px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text);">
+            <label style="display: block; margin-bottom: 5px; font-size: 13px; font-weight: 600;">Status</label>
+            <select id="editStatus" style="width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 12px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text);">
                 <option value="Resolved">Resolved</option>
                 <option value="Escalated">Escalated</option>
             </select>
         </div>
         <div class="form-group">
-            <label style="display: block; margin-bottom: 5px;">AI Response</label>
-            <textarea id="editResponse" style="width: 100%; height: 120px; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text);"></textarea>
+            <label style="display: block; margin-bottom: 5px; font-size: 13px; font-weight: 600;">AI Response</label>
+            <textarea id="editResponse" style="width: 100%; height: 120px; padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); resize: none;"></textarea>
         </div>
         <div class="modal-footer">
             <button class="btn btn-secondary" onclick="closeModal('editModal')">Cancel</button>
@@ -207,12 +252,12 @@
             <h3>Add to Knowledge Base</h3>
         </div>
         <div class="form-group">
-            <label style="display: block; margin-bottom: 5px;">Intent / Category</label>
-            <input type="text" id="kbIntent" style="width: 100%; padding: 10px; margin-bottom: 15px; border-radius: 8px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text);">
+            <label style="display: block; margin-bottom: 5px; font-size: 13px; font-weight: 600;">Intent / Category</label>
+            <input type="text" id="kbIntent" style="width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 12px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text);">
         </div>
         <div class="form-group">
-            <label style="display: block; margin-bottom: 5px;">Response / Solution</label>
-            <textarea id="kbResponse" style="width: 100%; height: 120px; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text);"></textarea>
+            <label style="display: block; margin-bottom: 5px; font-size: 13px; font-weight: 600;">Response / Solution</label>
+            <textarea id="kbResponse" style="width: 100%; height: 120px; padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); resize: none;"></textarea>
         </div>
         <div class="modal-footer">
             <button class="btn btn-secondary" onclick="closeModal('kbModal')">Cancel</button>
@@ -281,6 +326,56 @@
             event.target.style.display = 'none';
         }
     }
+
+    // Chart.js Implementation
+    const total = {{ total }};
+    const positive = {{ positive }};
+    const negative = {{ negative }};
+    const unrated = total - positive - negative;
+    
+    const escalated = {{ escalated }};
+    const resolved = total - escalated;
+
+    const isDark = document.body.classList.contains('dark');
+    const textColor = isDark ? '#f8fafc' : '#0f172a';
+
+    // Feedback Chart
+    new Chart(document.getElementById('feedbackChart'), {
+        type: 'pie',
+        data: {
+            labels: ['Positive', 'Negative', 'Unrated'],
+            datasets: [{
+                data: [positive, negative, unrated],
+                backgroundColor: ['#10b981', '#f59e0b', '#94a3b8'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom', labels: { color: textColor, font: { family: 'Inter', weight: '600' } } }
+            }
+        }
+    });
+
+    // Status Chart
+    new Chart(document.getElementById('statusChart'), {
+        type: 'pie',
+        data: {
+            labels: ['Resolved', 'Pending'],
+            datasets: [{
+                data: [resolved, escalated],
+                backgroundColor: ['#4f46e5', '#ef4444'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom', labels: { color: textColor, font: { family: 'Inter', weight: '600' } } }
+            }
+        }
+    });
 </script>
 
 </body>
