@@ -6,22 +6,34 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Initialize Firebase Admin
-cred_json = os.getenv("FIREBASE_CREDENTIALS_JSON")
+# Check for JSON content in environment variables first (preferred for Render)
+cred_json = os.getenv("FIREBASE_JSON") or os.getenv("FIREBASE_CREDENTIALS_JSON")
 cred_path = os.getenv("FIREBASE_CREDENTIALS_PATH", "firebase_credentials.json")
 
 if not firebase_admin._apps:
-    if cred_json:
-        import json
-        cred_dict = json.loads(cred_json)
-        cred = credentials.Certificate(cred_dict)
-    else:
-        cred = credentials.Certificate(cred_path)
-    
-    # Explicitly set project ID to avoid mismatch errors
-    project_id = os.getenv("FIREBASE_PROJECT_ID")
-    firebase_admin.initialize_app(cred, {
-        'projectId': project_id
-    })
+    try:
+        if cred_json:
+            import json
+            cred_dict = json.loads(cred_json)
+            cred = credentials.Certificate(cred_dict)
+            print("INFO: Firebase initialized from environment variable.")
+        elif os.path.exists(cred_path):
+            cred = credentials.Certificate(cred_path)
+            print(f"INFO: Firebase initialized from file: {cred_path}")
+        else:
+            raise FileNotFoundError(
+                f"Firebase credentials not found. Please set FIREBASE_JSON env var or provide {cred_path}"
+            )
+        
+        # Explicitly set project ID to avoid mismatch errors
+        project_id = os.getenv("FIREBASE_PROJECT_ID")
+        firebase_admin.initialize_app(cred, {
+            'projectId': project_id
+        })
+    except Exception as e:
+        print(f"ERROR: Failed to initialize Firebase: {e}")
+        # In production, you might want to re-raise or handle this differently
+        raise
 
 db = firestore.client()
 
