@@ -5,4 +5,5 @@ python-dotenv
 numpy
 Flask-Limiter
 Flask-WTF
+Flask-CORS
 

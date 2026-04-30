@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, render_template, redirect, session, url_for
+from flask_cors import CORS
 from functools import wraps
 from datetime import datetime
 from flask_limiter import Limiter
@@ -16,6 +17,7 @@ from services.firebase_service import verify_token, save_ticket, get_user_ticket
 from services.genai_service import generate_support_response
 
 app = Flask(__name__)
+CORS(app)
 # In production, set this in .env
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY', 'development_secret_key_123')
 
