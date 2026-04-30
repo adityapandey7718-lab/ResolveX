@@ -27,6 +27,11 @@ Traditional chatbots often fail because they are static; once they encounter an 
 - **📈 Semantic Confidence Scoring**: Uses vector embeddings to calculate mathematical similarity between queries and documentation.
 - **🔄 Learning Feedback Loop**: Captures "Not Helpful" responses and allows users to suggest corrections.
 - **👨‍💻 Premium Admin Dashboard**: Real-time stats and management interface for ticket escalation and KB promotion.
+- **🛡️ Advanced Security**:
+  - **Rate Limiting**: Protects against brute-force and API abuse using `Flask-Limiter`.
+  - **Security Headers**: Hardened against XSS and Clickjacking with `Flask-Talisman` (CSP enabled).
+  - **CSRF Protection**: Comprehensive protection for all state-changing requests using `Flask-WTF`.
+  - **Secure Authentication**: Multi-provider login (Google & Email) via Firebase.
 
 ---
 
@@ -35,6 +40,7 @@ Traditional chatbots often fail because they are static; once they encounter an 
 - **AI Engine**: Google Generative AI (Gemini Flash, Text Embeddings)
 - **Database**: Google Firestore (NoSQL)
 - **Auth**: Firebase Authentication (Google & Email)
+- **Security**: Flask-Limiter, Flask-Talisman, Flask-WTF, Flask-CORS
 - **Frontend**: Vanilla HTML5, CSS3 (Glassmorphism), JavaScript (ES6+)
 
 ---
@@ -111,9 +117,9 @@ Access the app at `http://127.0.0.1:5000`.
 - [ ] Automated weekly PDF reports for support performance.
 - [ ] Multi-language support using Gemini's translation capabilities.
 - [ ] Vector database integration (e.g., Pinecone) for massive scale.
-
-## 🤝 Contributors
-- **Aditya Pandey** - Lead Developer & Architect
+- [ ] Audit Logging: Track all admin actions for compliance.
+- [ ] Automated vulnerability scanning integration in CI/CD pipeline.
+- [ ] Enhanced session management with encrypted cookies.
 
 ---
 **ResolveX**: *Building support systems that actually get smarter.*
