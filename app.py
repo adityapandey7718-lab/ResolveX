@@ -86,6 +86,7 @@ def login():
     }
 
 @app.route("/api/auth/verify", methods=["POST"])
+@csrf.exempt
 @limiter.limit("10 per hour")
 def verify_auth():
     """
@@ -110,6 +111,7 @@ def verify_auth():
         return jsonify({"error": error_msg}), 401
 
 @app.route("/logout")
+@csrf.exempt
 def logout():
     session.clear()
     return redirect("/login")

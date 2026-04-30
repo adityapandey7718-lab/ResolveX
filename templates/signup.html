@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Signup - ResolveX</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
@@ -59,7 +60,10 @@
             const idToken = await user.getIdToken();
             const response = await fetch('/api/auth/verify', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                },
                 body: JSON.stringify({ idToken: idToken })
             });
             const data = await response.json();
