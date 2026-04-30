@@ -40,7 +40,8 @@ csp = {
         '\'unsafe-inline\'', # Required for Firebase inline modules
         'https://www.gstatic.com',
         'https://apis.google.com',
-        'https://www.google.com'
+        'https://www.google.com',
+        'https://cdn.jsdelivr.net' # Added for Chart.js
     ],
     'connect-src': [
         '\'self\'',
