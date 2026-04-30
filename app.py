@@ -1,5 +1,8 @@
 from flask import Flask, request, jsonify, render_template, redirect, session, url_for
 from functools import wraps
+from datetime import datetime
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 import uuid
 import os
 from dotenv import load_dotenv
@@ -14,6 +17,16 @@ from services.genai_service import generate_support_response
 app = Flask(__name__)
 # In production, set this in .env
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY', 'development_secret_key_123')
+
+# -----------------------------
+# Rate Limiting
+# -----------------------------
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://",
+)
 
 # -----------------------------
 # Auth Decorator
@@ -61,6 +74,7 @@ def login():
     }
 
 @app.route("/api/auth/verify", methods=["POST"])
+@limiter.limit("10 per hour")
 def verify_auth():
     """Endpoint for frontend to send Firebase ID token"""
     data = request.get_json()
@@ -110,6 +124,7 @@ def home():
 
 @app.route("/chat", methods=["POST"])
 @login_required
+@limiter.limit("5 per minute")
 def chat():
     data = request.get_json(silent=True)
     if not data:

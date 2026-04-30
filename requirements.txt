@@ -3,4 +3,5 @@ firebase-admin
 google-generativeai
 python-dotenv
 numpy
+Flask-Limiter
 
