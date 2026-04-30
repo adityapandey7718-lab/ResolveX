@@ -48,6 +48,13 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+@app.context_processor
+def inject_admin_status():
+    """Provides is_admin boolean to all templates."""
+    admin_emails = os.getenv('ADMIN_EMAILS', '').split(',')
+    is_admin = 'email' in session and session['email'] in admin_emails
+    return dict(is_admin=is_admin)
+
 # -----------------------------
 # Auth Routes
 # -----------------------------

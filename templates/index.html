@@ -19,7 +19,9 @@
                     <button onclick="resetChat()" class="btn btn-success" style="font-weight: 700;">
                         + New Chat
                     </button>
+                    {% if is_admin %}
                     <a href="/admin" class="btn btn-secondary">Admin</a>
+                    {% endif %}
                     <a href="/my-tickets" class="btn btn-secondary">Tickets</a>
                 </div>
                 
