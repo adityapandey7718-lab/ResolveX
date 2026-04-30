@@ -6,9 +6,17 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Initialize Firebase Admin
+cred_json = os.getenv("FIREBASE_CREDENTIALS_JSON")
 cred_path = os.getenv("FIREBASE_CREDENTIALS_PATH", "firebase_credentials.json")
+
 if not firebase_admin._apps:
-    cred = credentials.Certificate(cred_path)
+    if cred_json:
+        import json
+        cred_dict = json.loads(cred_json)
+        cred = credentials.Certificate(cred_dict)
+    else:
+        cred = credentials.Certificate(cred_path)
+    
     # Explicitly set project ID to avoid mismatch errors
     project_id = os.getenv("FIREBASE_PROJECT_ID")
     firebase_admin.initialize_app(cred, {

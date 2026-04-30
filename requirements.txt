@@ -7,4 +7,4 @@ Flask-Limiter
 Flask-WTF
 Flask-CORS
 flask-talisman
-
+gunicorn
