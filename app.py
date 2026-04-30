@@ -3,6 +3,7 @@ from functools import wraps
 from datetime import datetime
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_wtf.csrf import CSRFProtect
 import uuid
 import os
 from dotenv import load_dotenv
@@ -27,6 +28,8 @@ limiter = Limiter(
     default_limits=["200 per day", "50 per hour"],
     storage_uri="memory://",
 )
+
+csrf = CSRFProtect(app)
 
 # -----------------------------
 # Auth Decorator

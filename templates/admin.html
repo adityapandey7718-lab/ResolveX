@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Admin Dashboard - ResolveX</title>
     <link rel="stylesheet" href="/static/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -246,6 +247,10 @@
 <script>
     let currentEditTicketId = null;
 
+    function getCsrfToken() {
+        return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    }
+
     function openEditModal(id, status, response) {
         currentEditTicketId = id;
         document.getElementById('editStatus').value = status;
@@ -269,7 +274,10 @@
         
         const res = await fetch(`/api/admin/ticket/${currentEditTicketId}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
             body: JSON.stringify({ status, response })
         });
         
@@ -286,7 +294,10 @@
         
         const res = await fetch('/api/admin/kb', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
             body: JSON.stringify({ intent, response })
         });
         
@@ -301,7 +312,8 @@
     async function deleteTicket(id) {
         if (confirm('Are you sure you want to delete this ticket? This action cannot be undone.')) {
             const res = await fetch(`/api/admin/ticket/${id}/delete`, {
-                method: 'POST'
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCsrfToken() }
             });
             if (res.ok) {
                 location.reload();

@@ -1,6 +1,10 @@
 let currentTicketId = null;
 let messageInput, chatForm, submitBtn, chatHistory, errorAlert, charCountSpan, themeToggle, ticketList;
 
+function getCsrfToken() {
+    return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+}
+
 function applyTheme(theme) {
     if (theme === 'dark') {
         document.body.classList.add('dark');
@@ -161,7 +165,10 @@ async function handleFeedback(ticketId, helpful, container, correctCat = null, c
     try {
         const res = await fetch(`/feedback/${ticketId}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
             body: JSON.stringify(payload)
         });
 
@@ -217,7 +224,10 @@ async function submitHandler(event) {
     try {
         const res = await fetch('/chat', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
             body: JSON.stringify({ message, ticket_id: currentTicketId })
         });
 
@@ -240,7 +250,10 @@ async function submitHandler(event) {
 async function resetChat() {
     currentTicketId = null;
     if (typeof chatHistory !== 'undefined') chatHistory.innerHTML = '';
-    await fetch('/api/chat/reset', { method: 'POST' }).catch(() => {});
+    await fetch('/api/chat/reset', { 
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCsrfToken() }
+    }).catch(() => {});
     const welcome = document.createElement('div');
     welcome.className = 'message ai-message';
     welcome.innerHTML = '<div class="bubble">Hello! I am ResolveX AI. How can I help you today?</div>';
