@@ -8,6 +8,9 @@
 
 **ResolveX** is a next-generation customer support automation platform that doesn't just answer questions—it learns from them. Built for speed, accuracy, and continuous improvement, ResolveX bridges the gap between AI automation and human expertise through a unique learning feedback loop.
 
+### 🌐 Live Demo
+**[Launch ResolveX](https://resolvex-hdfs.onrender.com)**
+
 ---
 
 ## 📖 Problem Statement
@@ -95,20 +98,6 @@ Access the app at `http://127.0.0.1:5000`.
 - [Usage Guide](docs/usage.md) - How to use the user and admin interfaces.
 
 ---
-
-## 🖼️ Screenshots & Demos
-
-### User Chat Interface
-> ![User Chat Placeholder](https://via.placeholder.com/800x450?text=User+Chat+Interface+with+Glassmorphism+Design)
-> *Caption: The main support interface featuring real-time AI responses and feedback forms.*
-
-### Admin Dashboard
-> ![Admin Dashboard Placeholder](https://via.placeholder.com/800x450?text=Admin+Dashboard+Preview)
-> *Caption: Real-time analytics and ticket management for support administrators.*
-
-### The Learning Loop in Action
-> ![Feedback Loop Placeholder](https://via.placeholder.com/800x450?text=Learning+Feedback+Loop+GIF)
-> *Caption: Demonstrating how user corrections are promoted to the Knowledge Base.*
 
 ---
 
