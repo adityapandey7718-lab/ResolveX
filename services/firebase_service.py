@@ -18,7 +18,10 @@ if not firebase_admin._apps:
 db = firestore.client()
 
 def verify_token(id_token):
-    """Verifies the Firebase ID token and returns the decoded token."""
+    """
+    Verifies the Firebase ID token and returns the decoded token.
+    Handles common issues like clock skew (token used too early).
+    """
     try:
         decoded_token = auth.verify_id_token(id_token)
         return decoded_token
@@ -94,7 +97,10 @@ def get_knowledge_base():
     return kb
 
 def update_knowledge_base_entry(intent, response):
-    """Updates or adds a knowledge base entry."""
+    """
+    Updates or adds a knowledge base entry.
+    This is the core of the feedback loop, allowing the system to grow its knowledge.
+    """
     doc_ref = db.collection('knowledge_base').document(intent)
     doc_ref.set({
         'intent': intent,

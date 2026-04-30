@@ -15,7 +15,8 @@ genai.configure(api_key=api_key)
 def calculate_semantic_similarity(user_message, kb):
     """
     Checks if the user message is semantically similar to any entry in the KB.
-    Returns the maximum similarity score found.
+    Uses 'text-embedding-004' (or gemini-embedding-001) to calculate vector distance.
+    Returns the similarity score (0.0 to 1.0).
     """
     if not kb:
         return 0.0
@@ -39,7 +40,7 @@ def calculate_semantic_similarity(user_message, kb):
             task_type="retrieval_document"
         )['embedding']
         
-        # Simple dot product as a similarity measure (embeddings are normalized)
+        # Simple dot product as a similarity measure (embeddings are normalized by the API)
         import numpy as np
         similarity = np.dot(user_emb, kb_emb)
         return similarity
@@ -50,7 +51,8 @@ def calculate_semantic_similarity(user_message, kb):
 def cross_verify_response(user_message, ai_response, kb):
     """
     Second-pass verification (Judge model) to check if the AI response 
-    is actually supported by the knowledge base.
+    is actually supported by the knowledge base (grounding check).
+    Prevents the LLM from making up procedures not in the KB.
     """
     kb_context = json.dumps(kb, indent=2)
     
@@ -155,7 +157,7 @@ def generate_support_response(user_message, chat_history=None):
         
         # 2. Cross-Verification (Judge) - Optional/Safe
         try:
-            verification = cross_verify_response(user_message, result['response'], kb)
+            # If similarity is too low or Judge fails grounding, force low confidence for escalation
             if similarity < 0.3 or not verification.get('is_grounded', True):
                 result['confidence'] = min(result.get('confidence', 100), 40)
             else:

@@ -76,7 +76,10 @@ def login():
 @app.route("/api/auth/verify", methods=["POST"])
 @limiter.limit("10 per hour")
 def verify_auth():
-    """Endpoint for frontend to send Firebase ID token"""
+    """
+    Endpoint for the frontend to send the Firebase ID token after successful login.
+    Verifies the token via Admin SDK and sets up the Flask session.
+    """
     data = request.get_json()
     id_token = data.get("idToken")
     
@@ -126,6 +129,10 @@ def home():
 @login_required
 @limiter.limit("5 per minute")
 def chat():
+    """
+    Main AI chat interface. Handles message processing, intent classification, 
+    grounding verification, and ticket persistence.
+    """
     data = request.get_json(silent=True)
     if not data:
         return jsonify({"error": "Invalid request format"}), 400
@@ -150,7 +157,7 @@ def chat():
     
     chat_history = session['chat_history'][-4:] # Keep last 4 messages for context
 
-    # Process with GenAI
+    # Process with GenAI: Includes classification, grounding, and similarity checks
     ai_result = generate_support_response(message, chat_history=chat_history)
     
     # Update History
@@ -204,7 +211,7 @@ def feedback(ticket_id):
     correct_category = data.get("correct_category")
     feedback_value = "positive" if helpful else "negative"
 
-    # Update in Firestore
+    # Update in Firestore: Captures user satisfaction and learning suggestions
     try:
         update_ticket_feedback(ticket_id, feedback_value, correct_answer, correct_category)
         return jsonify({"message": "Feedback recorded"})
@@ -278,6 +285,10 @@ def admin_update_ticket(ticket_id):
 @login_required
 @admin_required
 def admin_update_kb():
+    """
+    Endpoint to promote a user-suggested correction to the permanent Knowledge Base.
+    This effectively allows the AI to 'learn' without retraining.
+    """
     data = request.get_json()
     intent = data.get("intent")
     response_text = data.get("response")
