@@ -193,10 +193,19 @@ function resetChat() {
 async function submitHandler(event) {
     event.preventDefault();
     const message = messageInput?.value.trim();
-    if (!message) return;
+    
+    if (!message) {
+        showError('Please enter a message');
+        return;
+    }
 
     if (message.length < 2) {
-        showError('Message too short');
+        showError('Message is too short');
+        return;
+    }
+
+    if (message.length > 1000) {
+        showError('Message exceeds 1000 characters');
         return;
     }
 

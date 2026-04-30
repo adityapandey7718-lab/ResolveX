@@ -142,6 +142,9 @@ def chat():
     
     if not message:
         return jsonify({"error": "Message is required"}), 400
+    
+    if len(message) > 1000:
+        return jsonify({"error": "Message exceeds maximum length of 1000 characters"}), 400
 
     user_id = session.get('user_id')
     history = []
