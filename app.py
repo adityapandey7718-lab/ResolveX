@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 print("DEBUG: Environment variables loaded from .env")
 
-from services.firebase_service import verify_token, save_ticket, get_user_tickets, get_all_tickets, update_ticket_feedback, get_ticket_stats
+from services.firebase_service import verify_token, save_ticket, get_user_tickets, get_all_tickets, update_ticket_feedback, get_ticket_stats, delete_ticket
 from services.genai_service import generate_support_response
 
 app = Flask(__name__)
@@ -23,6 +23,15 @@ def login_required(f):
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
             return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        admin_emails = os.getenv('ADMIN_EMAILS', '').split(',')
+        if 'email' not in session or session['email'] not in admin_emails:
+            return "Unauthorized: Admin access only", 403
         return f(*args, **kwargs)
     return decorated_function
 
@@ -205,6 +214,7 @@ def my_tickets():
 # -----------------------------
 @app.route("/admin")
 @login_required
+@admin_required
 def admin():
     # Fetch tickets and stats from Firestore
     tickets = get_all_tickets()
@@ -230,6 +240,7 @@ def reset_chat():
 
 @app.route("/api/admin/ticket/<ticket_id>", methods=["POST"])
 @login_required
+@admin_required
 def admin_update_ticket(ticket_id):
     # In a real app, check if user is admin
     data = request.get_json()
@@ -250,6 +261,7 @@ def admin_update_ticket(ticket_id):
 
 @app.route("/api/admin/kb", methods=["POST"])
 @login_required
+@admin_required
 def admin_update_kb():
     data = request.get_json()
     intent = data.get("intent")
@@ -261,6 +273,16 @@ def admin_update_kb():
     try:
         from services.firebase_service import update_knowledge_base_entry
         update_knowledge_base_entry(intent, response_text)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/admin/ticket/<ticket_id>/delete", methods=["POST"])
+@login_required
+@admin_required
+def admin_delete_ticket(ticket_id):
+    try:
+        delete_ticket(ticket_id)
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500

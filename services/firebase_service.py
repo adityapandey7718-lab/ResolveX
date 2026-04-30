@@ -27,12 +27,15 @@ def verify_token(id_token):
         # Handle Clock Skew: "Token used too early"
         if "Token used too early" in error_msg:
             import time
-            print("DEBUG: Clock skew detected. Retrying in 1 second...")
-            time.sleep(1.1)  # Wait just over 1 second
-            try:
-                return auth.verify_id_token(id_token)
-            except Exception as retry_e:
-                error_msg = str(retry_e)
+            for i in range(3):  # Try up to 3 times
+                print(f"DEBUG: Clock skew detected (Attempt {i+1}). Retrying in 2 seconds...")
+                time.sleep(2.0)
+                try:
+                    return auth.verify_id_token(id_token)
+                except Exception as retry_e:
+                    error_msg = str(retry_e)
+                    if "Token used too early" not in error_msg:
+                        break
         
         print(f"DEBUG: Firebase Token Verification Failed. Error: {error_msg}")
         import traceback
@@ -120,3 +123,8 @@ def get_ticket_stats():
         "negative": negative,
         "escalated": escalated
     }
+
+def delete_ticket(ticket_id):
+    """Deletes a ticket from Firestore."""
+    db.collection('tickets').document(ticket_id).delete()
+

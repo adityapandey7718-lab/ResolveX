@@ -124,8 +124,8 @@ def generate_support_response(user_message, chat_history=None):
         
         # Format history for Gemini
         formatted_history = []
-        if history:
-            for msg in history:
+        if chat_history:
+            for msg in chat_history:
                 role = "user" if msg['role'] == 'user' else "model"
                 formatted_history.append({"role": role, "parts": [msg['content']]})
         

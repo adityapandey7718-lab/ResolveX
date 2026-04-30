@@ -185,6 +185,7 @@
                                 {% if t.feedback == 'negative' and t.correct_answer %}
                                 <button class="action-btn btn-kb" onclick="openKBModal('{{ t.correct_category or t.intent }}', `{{ t.correct_answer|replace('`', '\\`') }}`)">To KB</button>
                                 {% endif %}
+                                <button class="action-btn" style="background: #fee2e2; color: #ef4444; border: 1px solid #fecaca;" onclick="deleteTicket('{{ t.id }}')">Delete</button>
                             </div>
                         </td>
                     </tr>
@@ -296,6 +297,19 @@
             alert('Failed to update Knowledge Base');
         }
     });
+
+    async function deleteTicket(id) {
+        if (confirm('Are you sure you want to delete this ticket? This action cannot be undone.')) {
+            const res = await fetch(`/api/admin/ticket/${id}/delete`, {
+                method: 'POST'
+            });
+            if (res.ok) {
+                location.reload();
+            } else {
+                alert('Failed to delete ticket');
+            }
+        }
+    }
 
     window.onclick = function(event) {
         if (event.target.className === 'modal') {
