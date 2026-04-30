@@ -5,6 +5,7 @@ from datetime import datetime
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_wtf.csrf import CSRFProtect
+from flask_talisman import Talisman
 import uuid
 import os
 from dotenv import load_dotenv
@@ -31,6 +32,46 @@ limiter = Limiter(
     storage_uri="memory://",
 )
 
+# Security Headers (CSP)
+csp = {
+    'default-src': '\'self\'',
+    'script-src': [
+        '\'self\'',
+        '\'unsafe-inline\'', # Required for Firebase inline modules
+        'https://www.gstatic.com',
+        'https://apis.google.com',
+        'https://www.google.com'
+    ],
+    'connect-src': [
+        '\'self\'',
+        'https://*.googleapis.com',
+        'https://*.firebaseapp.com',
+        'https://identitytoolkit.googleapis.com',
+        'https://securetoken.googleapis.com'
+    ],
+    'style-src': [
+        '\'self\'',
+        '\'unsafe-inline\'', # Required for glassmorphism styles
+        'https://fonts.googleapis.com'
+    ],
+    'font-src': [
+        '\'self\'',
+        'https://fonts.gstatic.com'
+    ],
+    'img-src': [
+        '\'self\'',
+        'data:',
+        'https://via.placeholder.com',
+        'https://www.gstatic.com'
+    ],
+    'frame-src': [
+        '\'self\'',
+        'https://*.firebaseapp.com',
+        'https://*.google.com'
+    ]
+}
+
+Talisman(app, content_security_policy=csp, force_https=False)
 csrf = CSRFProtect(app)
 
 # -----------------------------
